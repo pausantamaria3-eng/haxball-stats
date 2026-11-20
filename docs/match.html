@@ -59,7 +59,29 @@
                 `;
                 container.append(card);
 
-                // Participantes en dos columnas (ROJO / AZUL)
+                // Posesión
+                if (match.red_possession != null || match.blue_possession != null) {
+                    const possCard = document.createElement("div");
+                    possCard.className = "card";
+                    const redP = match.red_possession ?? 0;
+                    const blueP = match.blue_possession ?? 0;
+                    possCard.innerHTML = `
+                        <h2>Posesión del balón</h2>
+                        <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+                            <div style="flex:1;min-width:120px">
+                                <div style="color:var(--red);font-weight:700;font-size:14px">ROJO ${redP}%</div>
+                                <div style="background:var(--bg2);border-radius:4px;height:8px;overflow:hidden;margin-top:4px"><div style="background:var(--red);height:100%;width:${redP}%"></div></div>
+                            </div>
+                            <div style="flex:1;min-width:120px">
+                                <div style="color:var(--blue);font-weight:700;font-size:14px">AZUL ${blueP}%</div>
+                                <div style="background:var(--bg2);border-radius:4px;height:8px;overflow:hidden;margin-top:4px"><div style="background:var(--blue);height:100%;width:${blueP}%"></div></div>
+                            </div>
+                        </div>
+                    `;
+                    container.append(possCard);
+                }
+
+                // Participantes en dos columnas
                 const pCard = document.createElement("div");
                 pCard.className = "card";
                 pCard.innerHTML = "<h2>Participantes</h2>";
@@ -74,27 +96,46 @@
                     title.textContent = team === "red" ? "ROJO" : "AZUL";
                     wrap.append(title);
                     const table = document.createElement("table");
-                    table.innerHTML = "<thead><tr><th>Jugador</th><th>Goles</th><th>PP</th><th>ELO</th></tr></thead>";
+                    table.innerHTML = "<thead><tr><th>Jugador</th><th>G</th><th>PP</th><th>T</th><th>TP</th><th>P</th><th>PC</th><th>A</th><th>I</th><th>Par</th><th>Pér</th><th>Dist</th><th>xG</th><th>⚡</th></tr></thead>";
                     const tbody = document.createElement("tbody");
                     const teamPlayers = participants.filter((p) => p.team === team);
                     if (!teamPlayers.length) {
                         const tr = document.createElement("tr");
-                        tr.innerHTML = '<td colspan="4" class="empty" style="text-align:center">Sin jugadores</td>';
+                        tr.innerHTML = '<td colspan="14" class="empty" style="text-align:center">Sin jugadores</td>';
                         tbody.append(tr);
                     } else {
                         teamPlayers.forEach((p) => {
                             const tr = document.createElement("tr");
                             if (myName && p.player_name === myName) tr.classList.add("me");
-                            const elo = p.elo_before != null
-                                ? (p.elo_change > 0 ? `+${p.elo_change}` : p.elo_change)
-                                : "—";
-                            const eloColor = p.elo_change > 0 ? "var(--green)" : p.elo_change < 0 ? "var(--red)" : "var(--muted)";
-                            tr.innerHTML = `<td><a href="player.html?name=${encodeURIComponent(p.player_name)}">${escapeHtml(p.player_name)}</a></td><td>${p.goals}</td><td>${p.own_goals}</td><td style="color:${eloColor};font-weight:700">${elo}</td>`;
+                            const elo = p.elo_before != null ? (p.elo_change > 0 ? `+${p.elo_change}` : p.elo_change) : "—";
+                            const pc = p.passes > 0 ? Math.round((p.completed_passes / p.passes) * 100) + "%" : "—";
+                            tr.innerHTML = `
+                                <td><a href="player.html?name=${encodeURIComponent(p.player_name)}">${escapeHtml(p.player_name)}</a></td>
+                                <td>${p.goals}</td>
+                                <td>${p.own_goals}</td>
+                                <td>${p.shots || 0}</td>
+                                <td>${p.shots_on_target || 0}</td>
+                                <td>${p.passes || 0}</td>
+                                <td>${p.completed_passes || 0}</td>
+                                <td>${p.assists || 0}</td>
+                                <td>${p.interceptions || 0}</td>
+                                <td>${p.saves || 0}</td>
+                                <td>${p.possession_lost || 0}</td>
+                                <td>${p.distance_covered || 0}</td>
+                                <td>${(p.xg || 0).toFixed(2)}</td>
+                                <td>${p.golazos || 0}</td>
+                            `;
                             tbody.append(tr);
                         });
                     }
                     table.append(tbody);
                     wrap.append(table);
+
+                    // Leyenda compacta
+                    const legend = document.createElement("div");
+                    legend.style.cssText = "color:var(--muted);font-size:10px;margin-top:6px";
+                    legend.textContent = "G=Goles PP=Propia T=Tiros TP=T.Puerta P=Pases PC=P.Completados A=Asist I=Intercept Par=Paradas Pér=Pérdidas Dist=Distancia";
+                    wrap.append(legend);
                     return wrap;
                 }
 
