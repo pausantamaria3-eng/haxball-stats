@@ -65,16 +65,24 @@
                 return;
             }
             statusEl.innerHTML = '<span style="color:var(--green)">Sesión activa</span>';
-            const { data: linked } = await window.supabase
-                .from("players")
-                .select("name")
-                .eq("auth_user_id", session.user.id)
-                .maybeSingle();
-            if (linked && linked.name) {
-                linkedNameEl.textContent = linked.name;
-                linkedSection.style.display = "block";
-                formEl.style.display = "none";
-            } else {
+            try {
+                const sb = window.supabase || (await import("./js/supabase.js")).supabase;
+                const { data: linked, error } = await sb
+                    .from("players")
+                    .select("name")
+                    .eq("auth_user_id", session.user.id)
+                    .maybeSingle();
+                console.log("checkLinked result:", linked, "error:", error);
+                if (linked && linked.name) {
+                    linkedNameEl.textContent = linked.name;
+                    linkedSection.style.display = "block";
+                    formEl.style.display = "none";
+                } else {
+                    linkedSection.style.display = "none";
+                    formEl.style.display = "block";
+                }
+            } catch (e) {
+                console.error("checkLinked error:", e);
                 linkedSection.style.display = "none";
                 formEl.style.display = "block";
             }
