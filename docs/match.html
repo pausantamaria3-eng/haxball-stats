@@ -36,7 +36,7 @@
         if (!id) {
             container.innerHTML = '<div class="empty">Falta el parámetro id</div>';
         } else {
-            Promise.all([fetchMatchDetail(id), getLinkedPlayerName()]).then(([{ match, participants, goals }, myName]) => {
+            Promise.all([fetchMatchDetail(id), getLinkedPlayerName().catch(() => null)]).then(([{ match, participants, goals }, myName]) => {
                 container.classList.remove("loading");
                 if (!match) { container.innerHTML = '<div class="empty">Partida no encontrada</div>'; return; }
 

@@ -73,8 +73,9 @@ table { width: 100%; border-collapse: collapse; }
 th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
 th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
 tr:hover td { background: var(--bg2); }
-tr.me td { background: #1a2a3a; border-left: 3px solid var(--accent); }
-tr.me:hover td { background: #1f3347; }
+tr.me td { background: rgba(77, 163, 255, 0.12); }
+tr.me td:first-child { border-left: 3px solid var(--accent); }
+tr.me:hover td { background: rgba(77, 163, 255, 0.2); }
 .rank { font-weight: 700; color: var(--gold); }
 
 .badge {

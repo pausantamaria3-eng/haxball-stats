@@ -44,7 +44,7 @@
         const topEl = document.getElementById("top-players");
         const recentEl = document.getElementById("recent-matches");
 
-        Promise.all([fetchTopPlayers(10), getLinkedPlayerName()])
+        Promise.all([fetchTopPlayers(10), getLinkedPlayerName().catch(() => null)])
             .then(([players, myName]) => {
             topEl.classList.remove("loading");
             if (!players.length) { topEl.innerHTML = '<div class="empty">Sin datos</div>'; return; }

@@ -31,7 +31,7 @@
         renderAuthBox(document.getElementById("auth-box"));
 
         const container = document.getElementById("players-table");
-        Promise.all([fetchTopPlayers(100), getLinkedPlayerName()]).then(([players, myName]) => {
+        Promise.all([fetchTopPlayers(100), getLinkedPlayerName().catch(() => null)]).then(([players, myName]) => {
             container.classList.remove("loading");
             if (!players.length) { container.innerHTML = '<div class="empty">Sin jugadores</div>'; return; }
             const table = document.createElement("table");
