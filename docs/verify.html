@@ -129,12 +129,18 @@
             if (!confirm("¿Seguro que quieres desconectar tu cuenta de Haxball?")) return;
             const session = await getSession();
             if (!session) return;
-            const { error } = await window.supabase
+            const sb = window.supabase || (await import("./js/supabase.js")).supabase;
+            const { data, error } = await sb
                 .from("players")
                 .update({ auth_user_id: null })
-                .eq("auth_user_id", session.user.id);
+                .eq("auth_user_id", session.user.id)
+                .select();
+            console.log("unlink result:", data, "error:", error);
             if (error) {
                 msgEl.textContent = "Error: " + error.message;
+                msgEl.style.color = "var(--red)";
+            } else if (!data || data.length === 0) {
+                msgEl.textContent = "No se pudo desconectar. Intenta de nuevo.";
                 msgEl.style.color = "var(--red)";
             } else {
                 msgEl.textContent = "Cuenta desconectada.";
