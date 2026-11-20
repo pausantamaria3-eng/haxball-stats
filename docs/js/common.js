@@ -127,20 +127,35 @@ export async function signOut() {
     location.reload();
 }
 
-export function renderAuthBox(container) {
+export async function renderAuthBox(container) {
     if (!container) return;
-    getSession().then((session) => {
-        if (session) {
-            const user = session.user;
-            container.innerHTML = "";
-            const span = el("span", { class: "auth-user" }, user.email || user.user_metadata?.full_name || "Usuario");
-            const btn = el("button", { class: "btn btn-sm", onClick: () => signOut() }, "Salir");
-            container.append(span, btn);
+    const session = await getSession();
+    if (session) {
+        const user = session.user;
+        container.innerHTML = "";
+        const displayName = user.email || user.user_metadata?.full_name || "Usuario";
+        const span = el("span", { class: "auth-user" }, displayName);
+
+        // Comprobar si tiene cuenta de Haxball vinculada.
+        const { data: linked } = await supabase
+            .from("players")
+            .select("name")
+            .eq("auth_user_id", user.id)
+            .maybeSingle();
+
+        if (linked && linked.name) {
+            const hx = el("span", { class: "auth-user", style: "color:var(--green);margin-left:8px" }, "Haxball: " + linked.name);
+            container.append(span, hx);
         } else {
-            container.innerHTML = "";
-            const g = el("button", { class: "btn btn-sm btn-google", onClick: () => signIn("google") }, "Google");
-            const d = el("button", { class: "btn btn-sm btn-discord", onClick: () => signIn("discord") }, "Discord");
-            container.append(g, d);
+            container.append(span);
         }
-    });
+
+        const btn = el("button", { class: "btn btn-sm", onClick: () => signOut() }, "Salir");
+        container.append(btn);
+    } else {
+        container.innerHTML = "";
+        const g = el("button", { class: "btn btn-sm btn-google", onClick: () => signIn("google") }, "Google");
+        const d = el("button", { class: "btn btn-sm btn-discord", onClick: () => signIn("discord") }, "Discord");
+        container.append(g, d);
+    }
 }
