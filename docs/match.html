@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Partida | Haxball Futsal</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/config.js"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <a class="brand" href="index.html">Haxball <span>Futsal</span></a>
+            <nav>
+                <a href="index.html" data-nav>Inicio</a>
+                <a href="players.html" data-nav>Jugadores</a>
+                <a href="matches.html" data-nav>Partidas</a>
+                <a href="verify.html" data-nav>Verificar cuenta</a>
+                <div class="auth-box" id="auth-box"></div>
+            </nav>
+        </div>
+    </header>
+    <main class="container">
+        <div id="match-detail" class="loading">Cargando...</div>
+    </main>
+    <footer>Haxball Futsal · Estadísticas públicas</footer>
+    <script type="module">
+        import { renderAuthBox, setActiveNav, fetchMatchDetail } from "./js/common.js";
+        setActiveNav();
+        renderAuthBox(document.getElementById("auth-box"));
+
+        const params = new URLSearchParams(location.search);
+        const id = params.get("id");
+        const container = document.getElementById("match-detail");
+
+        if (!id) {
+            container.innerHTML = '<div class="empty">Falta el parámetro id</div>';
+        } else {
+            fetchMatchDetail(id).then(({ match, participants, goals }) => {
+                container.classList.remove("loading");
+                if (!match) { container.innerHTML = '<div class="empty">Partida no encontrada</div>'; return; }
+
+                const type = match.type === "official" ? "OFICIAL" : "INFORMAL";
+                const card = document.createElement("div");
+                card.className = "card";
+                card.innerHTML = `
+                    <h1 style="margin:0 0 10px">${type} · ${match.map_name || "—"}</h1>
+                    <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+                        <span class="match-score"><span class="score-red">${match.red_score}</span> - <span class="score-blue">${match.blue_score}</span></span>
+                        <span class="badge badge-${match.status}">${match.status}</span>
+                        ${match.manual ? '<span class="badge badge-informal">manual</span>' : ""}
+                        ${match.elo_eligible ? '<span class="badge badge-completed">ELO</span>' : ""}
+                    </div>
+                    <div style="color:var(--muted);font-size:13px">
+                        Inicio: ${fmtDate(match.started_at)} · Fin: ${fmtDate(match.ended_at)} · Duración: ${fmtDur(match.duration_seconds)}
+                        ${match.end_reason ? " · Fin: " + match.end_reason : ""}
+                        ${match.spectator_name ? " · Espectador: " + escapeHtml(match.spectator_name) : ""}
+                    </div>
+                `;
+                container.append(card);
+
+                // Participantes
+                const pCard = document.createElement("div");
+                pCard.className = "card";
+                pCard.innerHTML = "<h2>Participantes</h2>";
+                const table = document.createElement("table");
+                table.innerHTML = "<thead><tr><th>Jugador</th><th>Equipo</th><th>Goles</th><th>PP</th><th>ELO antes</th><th>ELO después</th><th>Cambio</th></tr></thead>";
+                const tbody = document.createElement("tbody");
+                participants.forEach((p) => {
+                    const tr = document.createElement("tr");
+                    const elo = p.elo_change > 0 ? `+${p.elo_change}` : p.elo_change;
+                    const color = p.elo_change > 0 ? "var(--green)" : p.elo_change < 0 ? "var(--red)" : "var(--muted)";
+                    tr.innerHTML = `<td><a href="player.html?name=${encodeURIComponent(p.player_name)}">${escapeHtml(p.player_name)}</a></td><td style="color:${p.team === "red" ? "var(--red)" : "var(--blue)"}">${p.team === "red" ? "ROJO" : "AZUL"}</td><td>${p.goals}</td><td>${p.own_goals}</td><td>${p.elo_before != null ? p.elo_before : "—"}</td><td>${p.elo_after != null ? p.elo_after : "—"}</td><td style="color:${color};font-weight:700">${p.elo_before != null ? elo : "—"}</td>`;
+                    tbody.append(tr);
+                });
+                table.append(tbody);
+                pCard.append(table);
+                container.append(pCard);
+
+                // Goles
+                if (goals.length) {
+                    const gCard = document.createElement("div");
+                    gCard.className = "card";
+                    gCard.innerHTML = "<h2>Goles</h2>";
+                    const gTable = document.createElement("table");
+                    gTable.innerHTML = "<thead><tr><th>Tiempo</th><th>Equipo</th><th>Jugador</th><th>Tipo</th></tr></thead>";
+                    const gBody = document.createElement("tbody");
+                    goals.forEach((g) => {
+                        const tr = document.createElement("tr");
+                        const own = g.is_own_goal ? " (propia)" : "";
+                        tr.innerHTML = `<td>${fmtTime(g.elapsed_seconds)}</td><td style="color:${g.scoring_team === "red" ? "var(--red)" : "var(--blue)"}">${g.scoring_team === "red" ? "ROJO" : "AZUL"}</td><td>${g.player_name ? escapeHtml(g.player_name) + own : "desconocido"}</td><td>${g.estimated ? "estimado" : "—"}</td>`;
+                        gBody.append(tr);
+                    });
+                    gTable.append(gBody);
+                    gCard.append(gTable);
+                    container.append(gCard);
+                }
+            });
+        }
+
+        function fmtDate(iso){if(!iso)return"—";const d=new Date(iso);return d.toLocaleString("es-ES",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});}
+        function fmtDur(s){if(typeof s!=="number"||!isFinite(s))return"—";const m=Math.floor(s/60);const r=Math.round(s%60);return m+":"+String(r).padStart(2,"0");}
+        function fmtTime(s){if(typeof s!=="number"||!isFinite(s))return"—";const m=Math.floor(s/60);const r=Math.round(s%60);return m+":"+String(r).padStart(2,"0");}
+        function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+    </script>
+</body>
+</html>

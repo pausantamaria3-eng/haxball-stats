@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificar cuenta | Haxball Futsal</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/config.js"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <a class="brand" href="index.html">Haxball <span>Futsal</span></a>
+            <nav>
+                <a href="index.html" data-nav>Inicio</a>
+                <a href="players.html" data-nav>Jugadores</a>
+                <a href="matches.html" data-nav>Partidas</a>
+                <a href="verify.html" data-nav>Verificar cuenta</a>
+                <div class="auth-box" id="auth-box"></div>
+            </nav>
+        </div>
+    </header>
+    <main class="container">
+        <h1>Verificar cuenta de Haxball</h1>
+        <div class="card">
+            <p>Vincula tu cuenta web con tu nombre de Haxball para que aparezca en tu perfil.</p>
+            <h3>Pasos</h3>
+            <ol style="color:var(--muted);font-size:14px;line-height:1.8">
+                <li>Inicia sesión con Google o Discord (arriba a la derecha).</li>
+                <li>Entra al servidor de Haxball y escribe el comando <strong>!conectar</strong>.</li>
+                <li>El servidor te dará un código de 6 dígitos válido por 5 minutos.</li>
+                <li>Introduce el código aquí abajo.</li>
+            </ol>
+            <div id="auth-status" style="margin:16px 0"></div>
+            <div id="verify-form" style="display:none">
+                <input type="text" id="code-input" placeholder="123456" maxlength="6" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);width:120px;font-size:18px;letter-spacing:4px;text-align:center">
+                <button class="btn" id="verify-btn" style="margin-left:8px">Verificar</button>
+                <div id="verify-msg" style="margin-top:10px;font-size:13px"></div>
+            </div>
+        </div>
+    </main>
+    <footer>Haxball Futsal · Estadísticas públicas</footer>
+    <script type="module">
+        import { renderAuthBox, setActiveNav, getSession } from "./js/common.js";
+        setActiveNav();
+        renderAuthBox(document.getElementById("auth-box"));
+
+        const statusEl = document.getElementById("auth-status");
+        const formEl = document.getElementById("verify-form");
+        const msgEl = document.getElementById("verify-msg");
+
+        getSession().then((session) => {
+            if (session) {
+                statusEl.innerHTML = '<span style="color:var(--green)">Sesión activa</span>';
+                formEl.style.display = "block";
+            } else {
+                statusEl.innerHTML = '<span style="color:var(--red)">Debes iniciar sesión primero.</span> <a href="login.html">Ir a login</a>';
+            }
+        });
+
+        document.getElementById("verify-btn").addEventListener("click", async () => {
+            const session = await getSession();
+            if (!session) { msgEl.textContent = "Debes iniciar sesión."; msgEl.style.color = "var(--red)"; return; }
+            const code = document.getElementById("code-input").value.trim();
+            if (!/^\d{6}$/.test(code)) { msgEl.textContent = "El código debe tener 6 dígitos."; msgEl.style.color = "var(--red)"; return; }
+
+            msgEl.textContent = "Verificando...";
+            msgEl.style.color = "var(--muted)";
+
+            try {
+                const res = await fetch(window.SUPABASE_CONFIG.url + "/functions/v1/verify-code", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + session.access_token,
+                    },
+                    body: JSON.stringify({ code }),
+                });
+                const data = await res.json();
+                if (data && data.ok) {
+                    msgEl.textContent = "Cuenta vinculada correctamente a " + data.playerName + ".";
+                    msgEl.style.color = "var(--green)";
+                } else {
+                    msgEl.textContent = "Error: " + (data?.error || "desconocido");
+                    msgEl.style.color = "var(--red)";
+                }
+            } catch (e) {
+                msgEl.textContent = "Error de conexión.";
+                msgEl.style.color = "var(--red)";
+            }
+        });
+    </script>
+</body>
+</html>
