@@ -65,6 +65,18 @@
                     ["Empates", player.draws],
                     ["Goles", player.goals],
                     ["Goles en propia", player.own_goals],
+                    ["Asistencias", player.assists || 0],
+                    ["Tiros", player.shots || 0],
+                    ["Tiros a puerta", player.shots_on_target || 0],
+                    ["Pases", player.passes || 0],
+                    ["Pases completados", player.completed_passes || 0],
+                    ["% Pases", player.passes > 0 ? Math.round((player.completed_passes / player.passes) * 100) + "%" : "—"],
+                    ["Intercepciones", player.interceptions || 0],
+                    ["Paradas", player.saves || 0],
+                    ["Pérdidas", player.possession_lost || 0],
+                    ["Distancia", (player.distance_covered || 0) + " u"],
+                    ["xG", (player.xg || 0).toFixed(2)],
+                    ["Golazos", player.golazos || 0],
                 ];
                 items.forEach(([label, val]) => {
                     const card = document.createElement("div");

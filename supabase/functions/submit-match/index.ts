@@ -143,6 +143,8 @@ Deno.serve(async (req: Request) => {
             duration_seconds: payload.durationSeconds ?? null,
             red_score: payload.redScore,
             blue_score: payload.blueScore,
+            red_possession: payload.redPossession ?? null,
+            blue_possession: payload.bluePossession ?? null,
             elo_eligible: payload.eloEligible ?? false,
             manual: payload.manual ?? false,
             end_reason: payload.endReason ?? null,
@@ -208,7 +210,7 @@ Deno.serve(async (req: Request) => {
         if (playerId) {
             const { data: pl } = await supabase
                 .from("players")
-                .select("matches, official_matches, informal_matches, wins, losses, draws, goals, own_goals")
+                .select("matches, official_matches, informal_matches, wins, losses, draws, goals, own_goals, shots, shots_on_target, passes, completed_passes, assists, interceptions, saves, possession_lost, distance_covered, xg, golazos")
                 .eq("id", playerId)
                 .single();
 
@@ -217,6 +219,17 @@ Deno.serve(async (req: Request) => {
                 matches: (pl?.matches ?? 0) + 1,
                 goals: (pl?.goals ?? 0) + (p.goals ?? 0),
                 own_goals: (pl?.own_goals ?? 0) + (p.ownGoals ?? 0),
+                shots: (pl?.shots ?? 0) + (p.shots ?? 0),
+                shots_on_target: (pl?.shots_on_target ?? 0) + (p.shotsOnTarget ?? 0),
+                passes: (pl?.passes ?? 0) + (p.passes ?? 0),
+                completed_passes: (pl?.completed_passes ?? 0) + (p.completedPasses ?? 0),
+                assists: (pl?.assists ?? 0) + (p.assists ?? 0),
+                interceptions: (pl?.interceptions ?? 0) + (p.interceptions ?? 0),
+                saves: (pl?.saves ?? 0) + (p.saves ?? 0),
+                possession_lost: (pl?.possession_lost ?? 0) + (p.possessionLost ?? 0),
+                distance_covered: (pl?.distance_covered ?? 0) + (p.distanceCovered ?? 0),
+                xg: Math.round(((pl?.xg ?? 0) + (p.xg ?? 0)) * 1000) / 1000,
+                golazos: (pl?.golazos ?? 0) + (p.golazos ?? 0),
                 last_seen: new Date().toISOString(),
             };
 
@@ -254,6 +267,17 @@ Deno.serve(async (req: Request) => {
             elo_before: eloEligible ? eloBefore : null,
             elo_after: eloEligible ? eloAfter : null,
             elo_change: eloEligible ? eloChange : 0,
+            shots: p.shots ?? 0,
+            shots_on_target: p.shotsOnTarget ?? 0,
+            passes: p.passes ?? 0,
+            completed_passes: p.completedPasses ?? 0,
+            assists: p.assists ?? 0,
+            interceptions: p.interceptions ?? 0,
+            saves: p.saves ?? 0,
+            possession_lost: p.possessionLost ?? 0,
+            distance_covered: p.distanceCovered ?? 0,
+            xg: p.xg ?? 0,
+            golazos: p.golazos ?? 0,
         });
     }
 
@@ -269,6 +293,8 @@ Deno.serve(async (req: Request) => {
             elapsed_seconds: g.elapsedSeconds ?? null,
             attribution: g.attribution ?? null,
             estimated: g.estimated ?? true,
+            xg: g.xg ?? null,
+            is_golazo: Boolean(g.isGolazo),
         }));
 
         const { error: goalsError } = await supabase.from("match_goals").insert(goalRows);
