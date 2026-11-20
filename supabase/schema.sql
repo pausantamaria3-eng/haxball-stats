@@ -122,13 +122,11 @@ alter table public.elo_history enable row level security;
 create policy "public read players" on public.players
     for select using (true);
 
--- Usuarios autenticados pueden vincular su cuenta a un perfil de jugador.
+-- Usuarios autenticados pueden vincular/desvincular su cuenta a un perfil.
 create policy "auth link player" on public.players
     for update
-    using (auth.uid() is not null)
-    with check (
-        auth_user_id is null or auth_user_id = auth.uid()
-    );
+    using (auth_user_id is null or auth_user_id = auth.uid())
+    with check (auth_user_id is null or auth_user_id = auth.uid());
 create policy "public read matches" on public.matches
     for select using (true);
 create policy "public read match_participants" on public.match_participants

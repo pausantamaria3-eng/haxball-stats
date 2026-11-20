@@ -24,15 +24,20 @@
         <h1>Verificar cuenta de Haxball</h1>
         <div class="card">
             <p>Vincula tu cuenta web con tu nombre de Haxball para que aparezca en tu perfil.</p>
-            <h3>Pasos</h3>
-            <ol style="color:var(--muted);font-size:14px;line-height:1.8">
-                <li>Inicia sesión con Google o Discord (arriba a la derecha).</li>
-                <li>Entra al servidor de Haxball y escribe el comando <strong>!conectar</strong>.</li>
-                <li>El servidor te dará un código de 6 dígitos válido por 5 minutos.</li>
-                <li>Introduce el código aquí abajo.</li>
-            </ol>
             <div id="auth-status" style="margin:16px 0"></div>
+            <div id="linked-section" style="display:none">
+                <div class="card" style="background:var(--bg2)">
+                    <p style="margin:0 0 8px">Cuenta vinculada a: <strong style="color:var(--green)" id="linked-name"></strong></p>
+                    <button class="btn" id="unlink-btn" style="background:var(--red)">Desconectar cuenta</button>
+                </div>
+            </div>
             <div id="verify-form" style="display:none">
+                <h3>Vincular nombre de Haxball</h3>
+                <ol style="color:var(--muted);font-size:14px;line-height:1.8">
+                    <li>Entra al servidor de Haxball y escribe el comando <strong>!conectar</strong>.</li>
+                    <li>El servidor te dará un código de 6 dígitos válido por 5 minutos.</li>
+                    <li>Introduce el código aquí abajo.</li>
+                </ol>
                 <input type="text" id="code-input" placeholder="123456" maxlength="6" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);width:120px;font-size:18px;letter-spacing:4px;text-align:center">
                 <button class="btn" id="verify-btn" style="margin-left:8px">Verificar</button>
                 <div id="verify-msg" style="margin-top:10px;font-size:13px"></div>
@@ -41,22 +46,41 @@
     </main>
     <footer>Haxball Futsal · Estadísticas públicas</footer>
     <script type="module">
-        import { renderAuthBox, setActiveNav, getSession } from "./js/common.js";
+        import { renderAuthBox, setActiveNav, getSession, escapeHtml } from "./js/common.js";
         setActiveNav();
         renderAuthBox(document.getElementById("auth-box"));
 
         const statusEl = document.getElementById("auth-status");
         const formEl = document.getElementById("verify-form");
+        const linkedSection = document.getElementById("linked-section");
+        const linkedNameEl = document.getElementById("linked-name");
         const msgEl = document.getElementById("verify-msg");
 
-        getSession().then((session) => {
-            if (session) {
-                statusEl.innerHTML = '<span style="color:var(--green)">Sesión activa</span>';
-                formEl.style.display = "block";
-            } else {
+        async function checkLinked() {
+            const session = await getSession();
+            if (!session) {
                 statusEl.innerHTML = '<span style="color:var(--red)">Debes iniciar sesión primero.</span> <a href="login.html">Ir a login</a>';
+                formEl.style.display = "none";
+                linkedSection.style.display = "none";
+                return;
             }
-        });
+            statusEl.innerHTML = '<span style="color:var(--green)">Sesión activa</span>';
+            const { data: linked } = await window.supabase
+                .from("players")
+                .select("name")
+                .eq("auth_user_id", session.user.id)
+                .maybeSingle();
+            if (linked && linked.name) {
+                linkedNameEl.textContent = linked.name;
+                linkedSection.style.display = "block";
+                formEl.style.display = "none";
+            } else {
+                linkedSection.style.display = "none";
+                formEl.style.display = "block";
+            }
+        }
+
+        checkLinked();
 
         document.getElementById("verify-btn").addEventListener("click", async () => {
             const session = await getSession();
@@ -80,6 +104,9 @@
                 if (data && data.ok) {
                     msgEl.textContent = "Cuenta vinculada correctamente a " + data.playerName + ".";
                     msgEl.style.color = "var(--green)";
+                    document.getElementById("code-input").value = "";
+                    await checkLinked();
+                    renderAuthBox(document.getElementById("auth-box"));
                 } else {
                     msgEl.textContent = "Error: " + (data?.error || "desconocido");
                     msgEl.style.color = "var(--red)";
@@ -87,6 +114,25 @@
             } catch (e) {
                 msgEl.textContent = "Error de conexión.";
                 msgEl.style.color = "var(--red)";
+            }
+        });
+
+        document.getElementById("unlink-btn").addEventListener("click", async () => {
+            if (!confirm("¿Seguro que quieres desconectar tu cuenta de Haxball?")) return;
+            const session = await getSession();
+            if (!session) return;
+            const { error } = await window.supabase
+                .from("players")
+                .update({ auth_user_id: null })
+                .eq("auth_user_id", session.user.id);
+            if (error) {
+                msgEl.textContent = "Error: " + error.message;
+                msgEl.style.color = "var(--red)";
+            } else {
+                msgEl.textContent = "Cuenta desconectada.";
+                msgEl.style.color = "var(--green)";
+                await checkLinked();
+                renderAuthBox(document.getElementById("auth-box"));
             }
         });
     </script>
