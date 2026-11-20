@@ -2,6 +2,10 @@ import { supabase } from "./supabase.js";
 
 export const ELO_START = 100;
 
+export function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
 export function el(tag, attrs = {}, ...children) {
     const node = document.createElement(tag);
     for (const [k, v] of Object.entries(attrs || {})) {
@@ -130,30 +134,36 @@ export async function signOut() {
 export async function renderAuthBox(container) {
     if (!container) return;
     const session = await getSession();
-    if (session) {
-        const user = session.user;
-        container.innerHTML = "";
-        const displayName = user.email || user.user_metadata?.full_name || "Usuario";
-        const span = el("span", { class: "auth-user" }, displayName);
 
-        // Comprobar si tiene cuenta de Haxball vinculada.
+    // Indicador de cuenta Haxball (siempre visible).
+    let hxName = null;
+    if (session) {
         const { data: linked } = await supabase
             .from("players")
             .select("name")
-            .eq("auth_user_id", user.id)
+            .eq("auth_user_id", session.user.id)
             .maybeSingle();
+        if (linked && linked.name) hxName = linked.name;
+    }
 
-        if (linked && linked.name) {
-            const hx = el("span", { class: "auth-user", style: "color:var(--green);margin-left:8px" }, "Haxball: " + linked.name);
-            container.append(span, hx);
-        } else {
-            container.append(span);
-        }
+    container.innerHTML = "";
 
+    const hxSpan = el("span", { class: "auth-user", style: "margin-right:12px" });
+    if (hxName) {
+        hxSpan.innerHTML = 'Cuenta Haxball: <strong style="color:var(--green)">' + escapeHtml(hxName) + "</strong>";
+    } else {
+        hxSpan.innerHTML = 'Cuenta Haxball: <span style="color:var(--muted)">no conectada</span>';
+    }
+    container.append(hxSpan);
+
+    if (session) {
+        const user = session.user;
+        const displayName = user.email || user.user_metadata?.full_name || "Usuario";
+        const span = el("span", { class: "auth-user", style: "margin-right:8px" }, displayName);
+        container.append(span);
         const btn = el("button", { class: "btn btn-sm", onClick: () => signOut() }, "Salir");
         container.append(btn);
     } else {
-        container.innerHTML = "";
         const g = el("button", { class: "btn btn-sm btn-google", onClick: () => signIn("google") }, "Google");
         const d = el("button", { class: "btn btn-sm btn-discord", onClick: () => signIn("discord") }, "Discord");
         container.append(g, d);
