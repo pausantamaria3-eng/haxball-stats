@@ -38,12 +38,14 @@
         import { renderAuthBox, setActiveNav } from "./js/common.js";
         import { fetchTopPlayers, fetchRecentMatches, getLinkedPlayerName } from "./js/common.js";
         setActiveNav();
-        renderAuthBox(document.getElementById("auth-box"));
+        const authBox = document.getElementById("auth-box");
+        renderAuthBox(authBox).catch((e) => console.error("renderAuthBox error:", e));
 
         const topEl = document.getElementById("top-players");
         const recentEl = document.getElementById("recent-matches");
 
-        Promise.all([fetchTopPlayers(10), getLinkedPlayerName()]).then(([players, myName]) => {
+        Promise.all([fetchTopPlayers(10), getLinkedPlayerName()])
+            .then(([players, myName]) => {
             topEl.classList.remove("loading");
             if (!players.length) { topEl.innerHTML = '<div class="empty">Sin datos</div>'; return; }
             const table = document.createElement("table");
@@ -63,6 +65,9 @@
             more.style.marginTop = "10px";
             more.innerHTML = '<a href="players.html">Ver ranking completo →</a>';
             topEl.append(more);
+        }).catch((e) => {
+            console.error("index top error:", e);
+            topEl.innerHTML = '<div class="empty">Error al cargar el ranking</div>';
         });
 
         fetchRecentMatches(10).then((matches) => {

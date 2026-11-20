@@ -149,12 +149,16 @@ export async function renderAuthBox(container) {
     // Indicador de cuenta Haxball (siempre visible).
     let hxName = null;
     if (session) {
-        const { data: linked } = await supabase
-            .from("players")
-            .select("name")
-            .eq("auth_user_id", session.user.id)
-            .maybeSingle();
-        if (linked && linked.name) hxName = linked.name;
+        try {
+            const { data: linked } = await supabase
+                .from("players")
+                .select("name")
+                .eq("auth_user_id", session.user.id)
+                .maybeSingle();
+            if (linked && linked.name) hxName = linked.name;
+        } catch (e) {
+            console.error("renderAuthBox linked query error:", e);
+        }
     }
 
     container.innerHTML = "";
