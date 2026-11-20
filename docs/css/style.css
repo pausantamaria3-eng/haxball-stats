@@ -43,6 +43,9 @@ nav a:hover { color: var(--text); background: var(--card); text-decoration: none
 nav a.active { color: var(--text); background: var(--card); }
 .auth-box { display: flex; gap: 8px; align-items: center; }
 .auth-user { color: var(--muted); font-size: 13px; }
+.pill { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; vertical-align: middle; }
+.pill-green { background: #1a3a2a; color: #4ade80; }
+.pill-red { background: #3a1a1a; color: #ff6b6b; }
 
 main { padding: 30px 0; min-height: 60vh; }
 

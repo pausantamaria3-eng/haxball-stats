@@ -148,11 +148,11 @@ export async function renderAuthBox(container) {
 
     container.innerHTML = "";
 
-    const hxSpan = el("span", { class: "auth-user", style: "margin-right:12px" });
+    const hxSpan = el("span", { class: "pill " + (hxName ? "pill-green" : "pill-red"), style: "margin-right:12px" });
     if (hxName) {
-        hxSpan.innerHTML = 'Cuenta Haxball: <strong style="color:var(--green)">' + escapeHtml(hxName) + "</strong>";
+        hxSpan.textContent = "Cuenta Haxball: " + hxName;
     } else {
-        hxSpan.innerHTML = 'Cuenta Haxball: <span style="color:var(--muted)">no conectada</span>';
+        hxSpan.textContent = "Cuenta Haxball: no conectada";
     }
     container.append(hxSpan);
 
