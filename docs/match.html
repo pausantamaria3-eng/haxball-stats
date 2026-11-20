@@ -59,23 +59,48 @@
                 `;
                 container.append(card);
 
-                // Participantes
+                // Participantes en dos columnas (ROJO / AZUL)
                 const pCard = document.createElement("div");
                 pCard.className = "card";
                 pCard.innerHTML = "<h2>Participantes</h2>";
-                const table = document.createElement("table");
-                table.innerHTML = "<thead><tr><th>Jugador</th><th>Equipo</th><th>Goles</th><th>PP</th><th>ELO antes</th><th>ELO después</th><th>Cambio</th></tr></thead>";
-                const tbody = document.createElement("tbody");
-                participants.forEach((p) => {
-                    const tr = document.createElement("tr");
-                    if (myName && p.player_name === myName) tr.classList.add("me");
-                    const elo = p.elo_change > 0 ? `+${p.elo_change}` : p.elo_change;
-                    const color = p.elo_change > 0 ? "var(--green)" : p.elo_change < 0 ? "var(--red)" : "var(--muted)";
-                    tr.innerHTML = `<td><a href="player.html?name=${encodeURIComponent(p.player_name)}">${escapeHtml(p.player_name)}</a></td><td style="color:${p.team === "red" ? "var(--red)" : "var(--blue)"}">${p.team === "red" ? "ROJO" : "AZUL"}</td><td>${p.goals}</td><td>${p.own_goals}</td><td>${p.elo_before != null ? p.elo_before : "—"}</td><td>${p.elo_after != null ? p.elo_after : "—"}</td><td style="color:${color};font-weight:700">${p.elo_before != null ? elo : "—"}</td>`;
-                    tbody.append(tr);
-                });
-                table.append(tbody);
-                pCard.append(table);
+                const cols = document.createElement("div");
+                cols.className = "grid grid-2";
+                cols.style.gap = "16px";
+
+                function buildTeamTable(team, colorVar) {
+                    const wrap = document.createElement("div");
+                    const title = document.createElement("h3");
+                    title.style.color = colorVar;
+                    title.textContent = team === "red" ? "ROJO" : "AZUL";
+                    wrap.append(title);
+                    const table = document.createElement("table");
+                    table.innerHTML = "<thead><tr><th>Jugador</th><th>Goles</th><th>PP</th><th>ELO</th></tr></thead>";
+                    const tbody = document.createElement("tbody");
+                    const teamPlayers = participants.filter((p) => p.team === team);
+                    if (!teamPlayers.length) {
+                        const tr = document.createElement("tr");
+                        tr.innerHTML = '<td colspan="4" class="empty" style="text-align:center">Sin jugadores</td>';
+                        tbody.append(tr);
+                    } else {
+                        teamPlayers.forEach((p) => {
+                            const tr = document.createElement("tr");
+                            if (myName && p.player_name === myName) tr.classList.add("me");
+                            const elo = p.elo_before != null
+                                ? (p.elo_change > 0 ? `+${p.elo_change}` : p.elo_change)
+                                : "—";
+                            const eloColor = p.elo_change > 0 ? "var(--green)" : p.elo_change < 0 ? "var(--red)" : "var(--muted)";
+                            tr.innerHTML = `<td><a href="player.html?name=${encodeURIComponent(p.player_name)}">${escapeHtml(p.player_name)}</a></td><td>${p.goals}</td><td>${p.own_goals}</td><td style="color:${eloColor};font-weight:700">${elo}</td>`;
+                            tbody.append(tr);
+                        });
+                    }
+                    table.append(tbody);
+                    wrap.append(table);
+                    return wrap;
+                }
+
+                cols.append(buildTeamTable("red", "var(--red)"));
+                cols.append(buildTeamTable("blue", "var(--blue)"));
+                pCard.append(cols);
                 container.append(pCard);
 
                 // Goles
