@@ -32,7 +32,7 @@
         setActiveNav();
         renderAuthBox(document.getElementById("auth-box"));
 
-        const PAGE_SIZE = 20;
+        const PAGE_SIZE = 10;
         let offset = 0;
         const listEl = document.getElementById("matches-list");
         const pagEl = document.getElementById("pagination");
@@ -40,25 +40,92 @@
         async function load() {
             listEl.classList.add("loading");
             listEl.innerHTML = "Cargando...";
-            const { data, error } = await supabase
+            const { data: matches, error } = await supabase
                 .from("matches")
                 .select("id,type,status,map_name,started_at,red_score,blue_score,elo_eligible,manual,end_reason")
                 .order("started_at", { ascending: false })
                 .range(offset, offset + PAGE_SIZE - 1);
-            listEl.classList.remove("loading");
-            if (error) { listEl.innerHTML = '<div class="empty">Error al cargar</div>'; console.error(error); return; }
-            if (!data || !data.length) { listEl.innerHTML = '<div class="empty">No hay más partidas</div>'; pagEl.innerHTML = ""; return; }
 
+            if (error) { listEl.innerHTML = '<div class="empty">Error al cargar</div>'; console.error(error); return; }
+            if (!matches || !matches.length) { listEl.innerHTML = '<div class="empty">No hay más partidas</div>'; pagEl.innerHTML = ""; return; }
+
+            const ids = matches.map((m) => m.id);
+            const { data: parts } = await supabase
+                .from("match_participants")
+                .select("match_id,player_name,team,goals,own_goals,elo_change,elo_before")
+                .in("match_id", ids);
+
+            const byMatch = {};
+            (parts || []).forEach((p) => {
+                if (!byMatch[p.match_id]) byMatch[p.match_id] = { red: [], blue: [] };
+                byMatch[p.match_id][p.team].push(p);
+            });
+
+            const myName = await getLinkedPlayerName().catch(() => null);
+
+            listEl.classList.remove("loading");
             listEl.innerHTML = "";
-            data.forEach((m) => {
-                const div = document.createElement("div");
-                div.className = "card";
-                div.style.cursor = "pointer";
+
+            matches.forEach((m) => {
+                const card = document.createElement("div");
+                card.className = "card";
                 const type = m.type === "official" ? "OFICIAL" : "INFORMAL";
                 const statusBadge = `<span class="badge badge-${m.status}">${m.status}</span>`;
-                div.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div>${statusBadge} <span class="badge badge-${m.type}">${type}</span> <strong>${m.map_name || "—"}</strong></div><div class="match-score"><span class="score-red">${m.red_score}</span> - <span class="score-blue">${m.blue_score}</span></div></div><div style="color:var(--muted);font-size:12px;margin-top:6px">${fmtDate(m.started_at)}${m.manual ? " · manual" : ""}${m.end_reason ? " · " + m.end_reason : ""}</div>`;
-                div.addEventListener("click", () => location.href = "match.html?id=" + m.id);
-                listEl.append(div);
+                const score = `<span class="match-score"><span class="score-red">${m.red_score}</span> - <span class="score-blue">${m.blue_score}</span></span>`;
+
+                const header = document.createElement("div");
+                header.style.cssText = "display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px";
+                header.innerHTML = `<div>${statusBadge} <span class="badge badge-${m.type}">${type}</span> <strong>${m.map_name || "—"}</strong></div>${score}`;
+                card.append(header);
+
+                const meta = document.createElement("div");
+                meta.style.cssText = "color:var(--muted);font-size:12px;margin-bottom:10px";
+                meta.innerHTML = `${fmtDate(m.started_at)}${m.manual ? " · manual" : ""}${m.end_reason ? " · " + m.end_reason : ""}${m.elo_eligible ? " · ELO" : ""}`;
+                card.append(meta);
+
+                // Dos columnas de participantes
+                const cols = document.createElement("div");
+                cols.className = "grid grid-2";
+                cols.style.gap = "12px";
+
+                function buildCol(team, colorVar) {
+                    const wrap = document.createElement("div");
+                    const title = document.createElement("div");
+                    title.style.cssText = `color:${colorVar};font-weight:700;font-size:13px;margin-bottom:4px`;
+                    title.textContent = team === "red" ? "ROJO" : "AZUL";
+                    wrap.append(title);
+                    const list = document.createElement("div");
+                    const teamParts = (byMatch[m.id]?.[team] || []).sort((a, b) => (b.goals - a.goals) || a.player_name.localeCompare(b.player_name));
+                    if (!teamParts.length) {
+                        list.innerHTML = '<span style="color:var(--muted);font-size:12px">Sin jugadores</span>';
+                    } else {
+                        teamParts.forEach((p) => {
+                            const row = document.createElement("div");
+                            row.style.cssText = "display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:13px;border-bottom:1px solid var(--border)";
+                            if (myName && p.player_name === myName) row.classList.add("me");
+                            const nameLink = `<a href="player.html?name=${encodeURIComponent(p.player_name)}">${escapeHtml(p.player_name)}</a>`;
+                            const goals = p.goals > 0 ? `<span style="color:var(--green);font-weight:700">${p.goals}</span>` : "0";
+                            const pp = p.own_goals > 0 ? `<span style="color:var(--red)">${p.own_goals}pp</span>` : "";
+                            const elo = p.elo_before != null ? (p.elo_change > 0 ? `+${p.elo_change}` : p.elo_change) : "";
+                            const eloColor = p.elo_change > 0 ? "var(--green)" : p.elo_change < 0 ? "var(--red)" : "var(--muted)";
+                            row.innerHTML = `<span>${nameLink}</span><span style="color:var(--muted)">${goals}${pp ? " " + pp : ""} ${elo ? '<span style="color:' + eloColor + ';font-weight:700;margin-left:6px">' + elo + '</span>' : ""}</span>`;
+                            list.append(row);
+                        });
+                    }
+                    wrap.append(list);
+                    return wrap;
+                }
+
+                cols.append(buildCol("red", "var(--red)"));
+                cols.append(buildCol("blue", "var(--blue)"));
+                card.append(cols);
+
+                card.style.cursor = "pointer";
+                card.addEventListener("click", (e) => {
+                    if (e.target.tagName === "A") return;
+                    location.href = "match.html?id=" + m.id;
+                });
+                listEl.append(card);
             });
 
             pagEl.innerHTML = "";
@@ -69,7 +136,7 @@
                 prev.addEventListener("click", () => { offset -= PAGE_SIZE; load(); });
                 pagEl.append(prev);
             }
-            if (data.length === PAGE_SIZE) {
+            if (matches.length === PAGE_SIZE) {
                 const next = document.createElement("button");
                 next.className = "btn btn-sm";
                 next.style.marginLeft = "10px";
@@ -84,6 +151,7 @@
             const d = new Date(iso);
             return d.toLocaleString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
         }
+        function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 
         load();
     </script>
