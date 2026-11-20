@@ -36,14 +36,14 @@
     <footer>Haxball Futsal · Estadísticas públicas</footer>
     <script type="module">
         import { renderAuthBox, setActiveNav } from "./js/common.js";
-        import { fetchTopPlayers, fetchRecentMatches, el } from "./js/common.js";
+        import { fetchTopPlayers, fetchRecentMatches, getLinkedPlayerName } from "./js/common.js";
         setActiveNav();
         renderAuthBox(document.getElementById("auth-box"));
 
         const topEl = document.getElementById("top-players");
         const recentEl = document.getElementById("recent-matches");
 
-        fetchTopPlayers(10).then((players) => {
+        Promise.all([fetchTopPlayers(10), getLinkedPlayerName()]).then(([players, myName]) => {
             topEl.classList.remove("loading");
             if (!players.length) { topEl.innerHTML = '<div class="empty">Sin datos</div>'; return; }
             const table = document.createElement("table");
@@ -53,6 +53,7 @@
             const tbody = document.createElement("tbody");
             players.forEach((p, i) => {
                 const tr = document.createElement("tr");
+                if (myName && p.name === myName) tr.classList.add("me");
                 tr.innerHTML = `<td class="rank">${i + 1}</td><td><a href="player.html?name=${encodeURIComponent(p.name)}">${escapeHtml(p.name)}</a></td><td><strong>${p.elo}</strong></td><td>${p.matches}</td><td>${p.wins}</td>`;
                 tbody.append(tr);
             });

@@ -119,6 +119,17 @@ export async function getSession() {
     return data?.session || null;
 }
 
+export async function getLinkedPlayerName() {
+    const session = await getSession();
+    if (!session) return null;
+    const { data } = await supabase
+        .from("players")
+        .select("name")
+        .eq("auth_user_id", session.user.id)
+        .maybeSingle();
+    return data?.name || null;
+}
+
 export async function signIn(provider) {
     await supabase.auth.signInWithOAuth({
         provider,

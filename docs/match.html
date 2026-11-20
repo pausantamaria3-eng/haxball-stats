@@ -25,7 +25,7 @@
     </main>
     <footer>Haxball Futsal · Estadísticas públicas</footer>
     <script type="module">
-        import { renderAuthBox, setActiveNav, fetchMatchDetail } from "./js/common.js";
+        import { renderAuthBox, setActiveNav, fetchMatchDetail, getLinkedPlayerName } from "./js/common.js";
         setActiveNav();
         renderAuthBox(document.getElementById("auth-box"));
 
@@ -36,7 +36,7 @@
         if (!id) {
             container.innerHTML = '<div class="empty">Falta el parámetro id</div>';
         } else {
-            fetchMatchDetail(id).then(({ match, participants, goals }) => {
+            Promise.all([fetchMatchDetail(id), getLinkedPlayerName()]).then(([{ match, participants, goals }, myName]) => {
                 container.classList.remove("loading");
                 if (!match) { container.innerHTML = '<div class="empty">Partida no encontrada</div>'; return; }
 
@@ -68,6 +68,7 @@
                 const tbody = document.createElement("tbody");
                 participants.forEach((p) => {
                     const tr = document.createElement("tr");
+                    if (myName && p.player_name === myName) tr.classList.add("me");
                     const elo = p.elo_change > 0 ? `+${p.elo_change}` : p.elo_change;
                     const color = p.elo_change > 0 ? "var(--green)" : p.elo_change < 0 ? "var(--red)" : "var(--muted)";
                     tr.innerHTML = `<td><a href="player.html?name=${encodeURIComponent(p.player_name)}">${escapeHtml(p.player_name)}</a></td><td style="color:${p.team === "red" ? "var(--red)" : "var(--blue)"}">${p.team === "red" ? "ROJO" : "AZUL"}</td><td>${p.goals}</td><td>${p.own_goals}</td><td>${p.elo_before != null ? p.elo_before : "—"}</td><td>${p.elo_after != null ? p.elo_after : "—"}</td><td style="color:${color};font-weight:700">${p.elo_before != null ? elo : "—"}</td>`;
@@ -87,6 +88,7 @@
                     const gBody = document.createElement("tbody");
                     goals.forEach((g) => {
                         const tr = document.createElement("tr");
+                        if (myName && g.player_name === myName) tr.classList.add("me");
                         const own = g.is_own_goal ? " (propia)" : "";
                         tr.innerHTML = `<td>${fmtTime(g.elapsed_seconds)}</td><td style="color:${g.scoring_team === "red" ? "var(--red)" : "var(--blue)"}">${g.scoring_team === "red" ? "ROJO" : "AZUL"}</td><td>${g.player_name ? escapeHtml(g.player_name) + own : "desconocido"}</td><td>${g.estimated ? "estimado" : "—"}</td>`;
                         gBody.append(tr);

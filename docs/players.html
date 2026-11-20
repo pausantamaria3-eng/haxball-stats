@@ -26,12 +26,12 @@
     </main>
     <footer>Haxball Futsal · Estadísticas públicas</footer>
     <script type="module">
-        import { renderAuthBox, setActiveNav, fetchTopPlayers } from "./js/common.js";
+        import { renderAuthBox, setActiveNav, fetchTopPlayers, getLinkedPlayerName } from "./js/common.js";
         setActiveNav();
         renderAuthBox(document.getElementById("auth-box"));
 
         const container = document.getElementById("players-table");
-        fetchTopPlayers(100).then((players) => {
+        Promise.all([fetchTopPlayers(100), getLinkedPlayerName()]).then(([players, myName]) => {
             container.classList.remove("loading");
             if (!players.length) { container.innerHTML = '<div class="empty">Sin jugadores</div>'; return; }
             const table = document.createElement("table");
@@ -39,6 +39,7 @@
             const tbody = document.createElement("tbody");
             players.forEach((p, i) => {
                 const tr = document.createElement("tr");
+                if (myName && p.name === myName) tr.classList.add("me");
                 tr.innerHTML = `<td class="rank">${i+1}</td><td><a href="player.html?name=${encodeURIComponent(p.name)}">${escapeHtml(p.name)}</a></td><td><strong>${p.elo}</strong></td><td>${p.matches}</td><td>${p.official_matches}</td><td>${p.informal_matches}</td><td>${p.wins}</td><td>${p.losses}</td><td>${p.draws}</td><td>${p.goals}</td><td>${p.own_goals}</td>`;
                 tbody.append(tr);
             });

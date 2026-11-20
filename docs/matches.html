@@ -27,7 +27,8 @@
     </main>
     <footer>Haxball Futsal · Estadísticas públicas</footer>
     <script type="module">
-        import { renderAuthBox, setActiveNav, fetchRecentMatches } from "./js/common.js";
+        import { renderAuthBox, setActiveNav, getLinkedPlayerName } from "./js/common.js";
+        import { supabase } from "./js/supabase.js";
         setActiveNav();
         renderAuthBox(document.getElementById("auth-box"));
 
@@ -39,7 +40,7 @@
         async function load() {
             listEl.classList.add("loading");
             listEl.innerHTML = "Cargando...";
-            const { data, error } = await window.supabase
+            const { data, error } = await supabase
                 .from("matches")
                 .select("id,type,status,map_name,started_at,red_score,blue_score,elo_eligible,manual,end_reason")
                 .order("started_at", { ascending: false })
