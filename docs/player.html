@@ -77,6 +77,7 @@
                     ["Distancia", (player.distance_covered || 0) + " u"],
                     ["xG", (player.xg || 0).toFixed(2)],
                     ["Golazos", player.golazos || 0],
+                    ["Oles", player.oles || 0],
                 ];
                 items.forEach(([label, val]) => {
                     const card = document.createElement("div");

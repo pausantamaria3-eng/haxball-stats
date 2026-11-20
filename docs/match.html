@@ -96,12 +96,12 @@
                     title.textContent = team === "red" ? "ROJO" : "AZUL";
                     wrap.append(title);
                     const table = document.createElement("table");
-                    table.innerHTML = "<thead><tr><th>Jugador</th><th>G</th><th>PP</th><th>T</th><th>TP</th><th>P</th><th>PC</th><th>A</th><th>I</th><th>Par</th><th>Pér</th><th>Dist</th><th>xG</th><th>⚡</th></tr></thead>";
+                    table.innerHTML = "<thead><tr><th>Jugador</th><th>G</th><th>PP</th><th>T</th><th>TP</th><th>P</th><th>PC</th><th>A</th><th>I</th><th>Par</th><th>Pér</th><th>Dist</th><th>xG</th><th>⚡</th><th>Oles</th></tr></thead>";
                     const tbody = document.createElement("tbody");
                     const teamPlayers = participants.filter((p) => p.team === team);
                     if (!teamPlayers.length) {
                         const tr = document.createElement("tr");
-                        tr.innerHTML = '<td colspan="14" class="empty" style="text-align:center">Sin jugadores</td>';
+                        tr.innerHTML = '<td colspan="15" class="empty" style="text-align:center">Sin jugadores</td>';
                         tbody.append(tr);
                     } else {
                         teamPlayers.forEach((p) => {
@@ -124,6 +124,7 @@
                                 <td>${p.distance_covered || 0}</td>
                                 <td>${(p.xg || 0).toFixed(2)}</td>
                                 <td>${p.golazos || 0}</td>
+                                <td>${p.oles || 0}</td>
                             `;
                             tbody.append(tr);
                         });
@@ -134,7 +135,7 @@
                     // Leyenda compacta
                     const legend = document.createElement("div");
                     legend.style.cssText = "color:var(--muted);font-size:10px;margin-top:6px";
-                    legend.textContent = "G=Goles PP=Propia T=Tiros TP=T.Puerta P=Pases PC=P.Completados A=Asist I=Intercept Par=Paradas Pér=Pérdidas Dist=Distancia";
+                    legend.textContent = "G=Goles PP=Propia T=Tiros TP=T.Puerta P=Pases PC=P.Completados A=Asist I=Intercept Par=Paradas Pér=Pérdidas Dist=Distancia ⚡=Golazos Oles=Oles";
                     wrap.append(legend);
                     return wrap;
                 }

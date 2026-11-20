@@ -15,7 +15,8 @@ alter table public.match_participants
     add column if not exists possession_lost int not null default 0,
     add column if not exists distance_covered int not null default 0,
     add column if not exists xg numeric(6,3) not null default 0,
-    add column if not exists golazos int not null default 0;
+    add column if not exists golazos int not null default 0,
+    add column if not exists oles int not null default 0;
 
 -- matches: posesión por equipo
 alter table public.matches
@@ -39,4 +40,5 @@ alter table public.players
     add column if not exists possession_lost int not null default 0,
     add column if not exists distance_covered int not null default 0,
     add column if not exists xg numeric(8,3) not null default 0,
-    add column if not exists golazos int not null default 0;
+    add column if not exists golazos int not null default 0,
+    add column if not exists oles int not null default 0;

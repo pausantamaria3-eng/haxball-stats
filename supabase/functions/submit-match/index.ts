@@ -210,7 +210,7 @@ Deno.serve(async (req: Request) => {
         if (playerId) {
             const { data: pl } = await supabase
                 .from("players")
-                .select("matches, official_matches, informal_matches, wins, losses, draws, goals, own_goals, shots, shots_on_target, passes, completed_passes, assists, interceptions, saves, possession_lost, distance_covered, xg, golazos")
+                .select("matches, official_matches, informal_matches, wins, losses, draws, goals, own_goals, shots, shots_on_target, passes, completed_passes, assists, interceptions, saves, possession_lost, distance_covered, xg, golazos, oles")
                 .eq("id", playerId)
                 .single();
 
@@ -230,6 +230,7 @@ Deno.serve(async (req: Request) => {
                 distance_covered: (pl?.distance_covered ?? 0) + (p.distanceCovered ?? 0),
                 xg: Math.round(((pl?.xg ?? 0) + (p.xg ?? 0)) * 1000) / 1000,
                 golazos: (pl?.golazos ?? 0) + (p.golazos ?? 0),
+                oles: (pl?.oles ?? 0) + (p.oles ?? 0),
                 last_seen: new Date().toISOString(),
             };
 
@@ -278,6 +279,7 @@ Deno.serve(async (req: Request) => {
             distance_covered: p.distanceCovered ?? 0,
             xg: p.xg ?? 0,
             golazos: p.golazos ?? 0,
+            oles: p.oles ?? 0,
         });
     }
 
