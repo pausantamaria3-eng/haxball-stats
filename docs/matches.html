@@ -52,7 +52,7 @@
             const ids = matches.map((m) => m.id);
             const { data: parts } = await supabase
                 .from("match_participants")
-                .select("match_id,player_name,team,goals,own_goals,elo_change,elo_before")
+                .select("match_id,player_name,team,goals,own_goals,assists,saves,interceptions,shots,shots_on_target,passes,completed_passes,elo_change,elo_before")
                 .in("match_id", ids);
 
             const byMatch = {};
@@ -101,14 +101,27 @@
                     } else {
                         teamParts.forEach((p) => {
                             const row = document.createElement("div");
-                            row.style.cssText = "display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:13px;border-bottom:1px solid var(--border)";
+                            row.style.cssText = "display:flex;justify-content:space-between;align-items:center;gap:8px;padding:3px 0;font-size:13px;border-bottom:1px solid var(--border)";
                             if (myName && p.player_name === myName) row.classList.add("me");
                             const nameLink = `<a href="player.html?name=${encodeURIComponent(p.player_name)}">${escapeHtml(p.player_name)}</a>`;
-                            const goals = p.goals > 0 ? `<span style="color:var(--green);font-weight:700">${p.goals}</span>` : "0";
-                            const pp = p.own_goals > 0 ? `<span style="color:var(--red)">${p.own_goals}pp</span>` : "";
+
+                            // Solo se muestran las estadísticas que tienen valor (> 0)
+                            const bits = [];
+                            if ((p.goals || 0) > 0) bits.push(`⚽${p.goals}`);
+                            if ((p.assists || 0) > 0) bits.push(`🅰️${p.assists}`);
+                            if ((p.saves || 0) > 0) bits.push(`🧤${p.saves}`);
+                            if ((p.own_goals || 0) > 0) bits.push(`🥅${p.own_goals}pp`);
+                            if ((p.interceptions || 0) > 0) bits.push(`🛡️${p.interceptions}`);
+                            if ((p.shots || 0) > 0 || (p.shots_on_target || 0) > 0) bits.push(`👟${p.shots || 0}/${p.shots_on_target || 0}`);
+                            if ((p.passes || 0) > 0 || (p.completed_passes || 0) > 0) bits.push(`🔁${p.completed_passes || 0}/${p.passes || 0}`);
+
+                            const stats = bits.length
+                                ? `<span style="color:var(--muted);font-size:12px">${bits.join(" ")}</span>`
+                                : "";
                             const elo = p.elo_before != null ? (p.elo_change > 0 ? `+${p.elo_change}` : p.elo_change) : "";
                             const eloColor = p.elo_change > 0 ? "var(--green)" : p.elo_change < 0 ? "var(--red)" : "var(--muted)";
-                            row.innerHTML = `<span>${nameLink}</span><span style="color:var(--muted)">${goals}${pp ? " " + pp : ""} ${elo ? '<span style="color:' + eloColor + ';font-weight:700;margin-left:6px">' + elo + '</span>' : ""}</span>`;
+                            const eloHtml = elo ? `<span style="color:${eloColor};font-weight:700;font-size:12px">${elo}</span>` : "";
+                            row.innerHTML = `<span>${nameLink}</span><span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">${stats}${eloHtml}</span>`;
                             list.append(row);
                         });
                     }

@@ -38,6 +38,13 @@ export function fmtDuration(sec) {
     return m + ":" + String(r).padStart(2, "0");
 }
 
+export function fmtDistanceKm(units) {
+    const n = Number(units) || 0;
+    // 10 unidades = 1 metro → 10.000 unidades = 1 km
+    const km = n / 10000;
+    return km.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " km";
+}
+
 export function teamColor(team) {
     return team === "red" ? "#ff6b6b" : "#6b8cff";
 }

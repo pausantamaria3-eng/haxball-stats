@@ -25,7 +25,7 @@
     </main>
     <footer>Haxball Futsal · Estadísticas públicas</footer>
     <script type="module">
-        import { renderAuthBox, setActiveNav, fetchMatchDetail, getLinkedPlayerName } from "./js/common.js";
+        import { renderAuthBox, setActiveNav, fetchMatchDetail, getLinkedPlayerName, fmtDistanceKm } from "./js/common.js";
         setActiveNav();
         renderAuthBox(document.getElementById("auth-box"));
 
@@ -96,7 +96,7 @@
                     title.textContent = team === "red" ? "ROJO" : "AZUL";
                     wrap.append(title);
                     const table = document.createElement("table");
-                    table.innerHTML = "<thead><tr><th>Jugador</th><th>G</th><th>PP</th><th>T</th><th>TP</th><th>P</th><th>PC</th><th>A</th><th>I</th><th>Par</th><th>Pér</th><th>Dist</th><th>xG</th><th>⚡</th><th>Oles</th></tr></thead>";
+                    table.innerHTML = "<thead><tr><th>Jugador</th><th>G</th><th>PP</th><th>T</th><th>TP</th><th>P</th><th>PC</th><th>A</th><th>I</th><th>Par</th><th>Pér</th><th>Dist km</th><th>xG</th><th>⚡</th><th>Oles</th></tr></thead>";
                     const tbody = document.createElement("tbody");
                     const teamPlayers = participants.filter((p) => p.team === team);
                     if (!teamPlayers.length) {
@@ -121,7 +121,7 @@
                                 <td>${p.interceptions || 0}</td>
                                 <td>${p.saves || 0}</td>
                                 <td>${p.possession_lost || 0}</td>
-                                <td>${p.distance_covered || 0}</td>
+                                <td>${fmtDistanceKm(p.distance_covered)}</td>
                                 <td>${(p.xg || 0).toFixed(2)}</td>
                                 <td>${p.golazos || 0}</td>
                                 <td>${p.oles || 0}</td>
@@ -135,7 +135,7 @@
                     // Leyenda compacta
                     const legend = document.createElement("div");
                     legend.style.cssText = "color:var(--muted);font-size:10px;margin-top:6px";
-                    legend.textContent = "G=Goles PP=Propia T=Tiros TP=T.Puerta P=Pases PC=P.Completados A=Asist I=Intercept Par=Paradas Pér=Pérdidas Dist=Distancia ⚡=Golazos Oles=Oles";
+                    legend.textContent = "G=Goles PP=Propia T=Tiros TP=T.Puerta P=Pases PC=P.Completados A=Asist I=Intercept Par=Paradas Pér=Pérdidas Dist km=Distancia (10 u = 1 m) ⚡=Golazos Oles=Oles";
                     wrap.append(legend);
                     return wrap;
                 }

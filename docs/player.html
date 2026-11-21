@@ -32,7 +32,7 @@
     </main>
     <footer>Haxball Futsal · Estadísticas públicas</footer>
     <script type="module">
-        import { renderAuthBox, setActiveNav, fetchPlayerByName, fetchPlayerMatches, fetchPlayerEloHistory, fmtDate, el } from "./js/common.js";
+        import { renderAuthBox, setActiveNav, fetchPlayerByName, fetchPlayerMatches, fetchPlayerEloHistory, fmtDate, fmtDistanceKm, el } from "./js/common.js";
         setActiveNav();
         renderAuthBox(document.getElementById("auth-box"));
 
@@ -74,7 +74,7 @@
                     ["Intercepciones", player.interceptions || 0],
                     ["Paradas", player.saves || 0],
                     ["Pérdidas", player.possession_lost || 0],
-                    ["Distancia", (player.distance_covered || 0) + " u"],
+                    ["Distancia", fmtDistanceKm(player.distance_covered)],
                     ["xG", (player.xg || 0).toFixed(2)],
                     ["Golazos", player.golazos || 0],
                     ["Oles", player.oles || 0],
