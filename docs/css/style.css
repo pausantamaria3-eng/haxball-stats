@@ -155,8 +155,33 @@ footer {
 #matches-list .badge { font-size: 12px; padding: 3px 10px; }
 #matches-list .match-score { font-size: 18px; }
 
+/* Repeticiones de goles */
+.replay-filter.active { background: var(--accent); color: #fff; }
+.replay-stage {
+    position: relative;
+    width: 100%;
+    background: #0b0f1a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+.replay-stage canvas { display: block; width: 100%; height: auto; }
+.replay-goal-marker {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--gold);
+    box-shadow: 0 0 6px var(--gold);
+    pointer-events: none;
+}
+.replay-controls { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.replay-controls input[type="range"] { flex: 1 1 240px; min-width: 120px; accent-color: var(--accent); }
+.replay-card p { line-height: 1.7; }
+
 @media (max-width: 600px) {
     .container { padding: 0 12px; }
     h1 { font-size: 22px; }
     th, td { padding: 8px 6px; font-size: 13px; }
+    .replay-time { min-width: auto !important; text-align: left !important; }
 }

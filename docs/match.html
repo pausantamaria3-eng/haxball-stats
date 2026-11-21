@@ -15,6 +15,7 @@
                 <a href="index.html" data-nav>Inicio</a>
                 <a href="players.html" data-nav>Jugadores</a>
                 <a href="matches.html" data-nav>Partidas</a>
+                <a href="replays.html" data-nav>Repeticiones</a>
                 <a href="verify.html" data-nav>Verificar cuenta</a>
                 <div class="auth-box" id="auth-box"></div>
             </nav>
@@ -179,7 +180,7 @@
                     gCard.className = "card";
                     gCard.innerHTML = "<h2>Goles</h2>";
                     const gTable = document.createElement("table");
-                    gTable.innerHTML = "<thead><tr><th>Tiempo</th><th>Equipo</th><th>Jugador</th><th>xG</th><th>Tipo</th></tr></thead>";
+                    gTable.innerHTML = "<thead><tr><th>Tiempo</th><th>Equipo</th><th>Jugador</th><th>xG</th><th>Tipo</th><th>Repetición</th></tr></thead>";
                     const gBody = document.createElement("tbody");
                     goals.forEach((g) => {
                         const tr = document.createElement("tr");
@@ -187,7 +188,8 @@
                         const own = g.is_own_goal ? " (propia)" : "";
                         const xg = g.xg != null ? Number(g.xg).toFixed(2) : "—";
                         const golazo = g.is_golazo ? " ⚡" : "";
-                        tr.innerHTML = `<td>${fmtTime(g.elapsed_seconds)}</td><td style="color:${g.scoring_team === "red" ? "var(--red)" : "var(--blue)"}">${g.scoring_team === "red" ? "ROJO" : "AZUL"}</td><td>${g.player_name ? escapeHtml(g.player_name) + own + golazo : "desconocido"}</td><td>${xg}</td><td>${g.estimated ? "estimado" : "—"}</td>`;
+                        const replayLink = g.replay ? `<a href="replays.html?goal=${encodeURIComponent(g.id)}">Ver ▶</a>` : "—";
+                        tr.innerHTML = `<td>${fmtTime(g.elapsed_seconds)}</td><td style="color:${g.scoring_team === "red" ? "var(--red)" : "var(--blue)"}">${g.scoring_team === "red" ? "ROJO" : "AZUL"}</td><td>${g.player_name ? escapeHtml(g.player_name) + own + golazo : "desconocido"}</td><td>${xg}</td><td>${g.estimated ? "estimado" : "—"}</td><td>${replayLink}</td>`;
                         gBody.append(tr);
                     });
                     gTable.append(gBody);

@@ -200,6 +200,17 @@ export async function fetchMatchDetail(matchId) {
     return { match: m.data, participants: p.data || [], goals: g.data || [] };
 }
 
+export async function fetchGoalReplays(limit = 100) {
+    const { data, error } = await supabase
+        .from("match_goals")
+        .select("*, matches!inner(id,type,status,map_name,started_at,red_score,blue_score,elo_eligible,manual,end_reason)")
+        .not("replay", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+    if (error) { console.error("fetchGoalReplays error:", error); throw error; }
+    return data || [];
+}
+
 export async function fetchPlayerEloHistory(playerId, limit = 50) {
     const { data, error } = await supabase
         .from("elo_history")

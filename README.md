@@ -10,6 +10,11 @@
 2. Pega el contenido de `supabase/schema.sql` y ejecuta.
 3. Verifica que las tablas aparezcan en Table Editor.
 
+## 2b. Repeticiones de goles
+1. En el SQL Editor ejecuta también `supabase/replays.sql` (añade a `match_goals` las columnas `assist_name`, `score_before`, `score_after`, `ball_speed_kmh` y `replay`).
+2. Despliega la Edge Function actualizada (paso 3) y pega en el headless el `haxball-server.js` actualizado.
+3. Cada gol guardará automáticamente 5 s antes y 1 s después a 20 fps. Se pueden ver en la pestaña **Repeticiones** de la web o desde el enlace `Ver ▶` en el detalle del partido.
+
 ## 3. Desplegar la Edge Function
 Instala la CLI de Supabase (https://supabase.com/docs/guides/cli) y ejecuta desde `C:\Users\ytpau\haxball-stats`:
 

@@ -460,6 +460,12 @@ Deno.serve(async (req: Request) => {
             estimated: g.estimated ?? true,
             xg: g.xg ?? null,
             is_golazo: Boolean(g.isGolazo),
+            assist_name: g.assistName ?? null,
+            assist_player_key: g.assistKey ?? null,
+            score_before: g.scoreBefore ?? null,
+            score_after: g.scoreAfter ?? null,
+            ball_speed_kmh: g.ballSpeedKmh ?? null,
+            replay: g.replay ?? null,
         }));
 
         const { error: goalsError } = await supabase.from("match_goals").insert(goalRows);
