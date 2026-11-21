@@ -121,6 +121,25 @@ export function calcMatchRating(p, match) {
     return Math.round(r * 10) / 10;
 }
 
+export function pickMatchMvp(participants, match) {
+    let best = null;
+    let bestRating = -Infinity;
+    (participants || []).forEach((p) => {
+        const rating = calcMatchRating(p, match);
+        const goals = Number(p.goals) || 0;
+        const bestGoals = Number(best && best.goals) || 0;
+        const name = String(p.player_name || "");
+        const bestName = String(best && best.player_name || "");
+        if (rating > bestRating ||
+            (rating === bestRating && goals > bestGoals) ||
+            (rating === bestRating && goals === bestGoals && name.localeCompare(bestName) < 0)) {
+            best = p;
+            bestRating = rating;
+        }
+    });
+    return best ? { player: best, rating: bestRating } : null;
+}
+
 export function teamColor(team) {
     return team === "red" ? "#ff6b6b" : "#6b8cff";
 }

@@ -79,6 +79,15 @@ tr.me td:first-child { border-left: 3px solid var(--accent); }
 tr.me:hover td { background: rgba(77, 163, 255, 0.2); }
 .rank { font-weight: 700; color: var(--gold); }
 
+/* MVP de cada partido */
+.mvp-banner { border-color: rgba(255,215,0,.45); background: linear-gradient(90deg, rgba(255,215,0,.14), rgba(255,215,0,.03)); }
+.mvp-banner h1, .mvp-banner h2 { color: var(--gold); }
+.mvp-badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:800; text-transform:uppercase; background:rgba(255,215,0,.18); color:var(--gold); border:1px solid rgba(255,215,0,.4); }
+tr.mvp td { background: rgba(255, 215, 0, 0.10); }
+tr.mvp td:first-child { border-left: 3px solid var(--gold); }
+tr.mvp:hover td { background: rgba(255, 215, 0, 0.16); }
+.mvp-row { background: rgba(255, 215, 0, 0.10); box-shadow: inset 3px 0 0 var(--gold); }
+
 .badge {
     display: inline-block;
     padding: 2px 8px;

@@ -27,7 +27,7 @@
     </main>
     <footer>Haxball Futsal · Estadísticas públicas</footer>
     <script type="module">
-        import { renderAuthBox, setActiveNav, getLinkedPlayerName, calcMatchRating, fmtRating } from "./js/common.js";
+        import { renderAuthBox, setActiveNav, getLinkedPlayerName, calcMatchRating, fmtRating, pickMatchMvp } from "./js/common.js";
         import { supabase } from "./js/supabase.js";
         setActiveNav();
         renderAuthBox(document.getElementById("auth-box"));
@@ -72,10 +72,15 @@
                 const type = m.type === "official" ? "OFICIAL" : "INFORMAL";
                 const statusBadge = `<span class="badge badge-${m.status}">${m.status}</span>`;
                 const score = `<span class="match-score"><span class="score-red">${m.red_score}</span> - <span class="score-blue">${m.blue_score}</span></span>`;
+                const allParts = [...(byMatch[m.id]?.red || []), ...(byMatch[m.id]?.blue || [])];
+                const mvp = pickMatchMvp(allParts, m);
+                const mvpBadge = mvp
+                    ? `<span class="mvp-badge">👑 MVP ${escapeHtml(mvp.player.player_name)} ${fmtRating(mvp.rating)}</span>`
+                    : "";
 
                 const header = document.createElement("div");
                 header.style.cssText = "display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px";
-                header.innerHTML = `<div>${statusBadge} <span class="badge badge-${m.type}">${type}</span> <strong>${m.map_name || "—"}</strong></div>${score}`;
+                header.innerHTML = `<div>${statusBadge} <span class="badge badge-${m.type}">${type}</span> <strong>${m.map_name || "—"}</strong> ${mvpBadge}</div>${score}`;
                 card.append(header);
 
                 const meta = document.createElement("div");
@@ -103,7 +108,9 @@
                             const row = document.createElement("div");
                             row.style.cssText = "display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0;font-size:15px;border-bottom:1px solid var(--border)";
                             if (myName && p.player_name === myName) row.classList.add("me");
-                            const nameLink = `<a href="player.html?name=${encodeURIComponent(p.player_name)}">${escapeHtml(p.player_name)}</a>`;
+                            const isMvp = mvp && p === mvp.player;
+                            if (isMvp) row.classList.add("mvp-row");
+                            const nameLink = `${isMvp ? "👑 " : ""}<a href="player.html?name=${encodeURIComponent(p.player_name)}">${escapeHtml(p.player_name)}</a>`;
 
                             // Solo se muestran las estadísticas que tienen valor (> 0)
                             const bits = [];

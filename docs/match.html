@@ -25,7 +25,7 @@
     </main>
     <footer>Haxball Futsal · Estadísticas públicas</footer>
     <script type="module">
-        import { renderAuthBox, setActiveNav, fetchMatchDetail, getLinkedPlayerName, fmtDistanceKm, calcMatchRating, fmtRating } from "./js/common.js";
+        import { renderAuthBox, setActiveNav, fetchMatchDetail, getLinkedPlayerName, fmtDistanceKm, calcMatchRating, fmtRating, pickMatchMvp } from "./js/common.js";
         setActiveNav();
         renderAuthBox(document.getElementById("auth-box"));
 
@@ -58,6 +58,24 @@
                     </div>
                 `;
                 container.append(card);
+
+                // MVP del partido (jugador con mayor valoración)
+                const mvp = pickMatchMvp(participants, match);
+                if (mvp) {
+                    const mvpCard = document.createElement("div");
+                    mvpCard.className = "card mvp-banner";
+                    mvpCard.innerHTML = `
+                        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+                            <div style="font-size:20px;font-weight:800;color:var(--gold)">👑 MVP del partido</div>
+                            <div style="font-size:18px;font-weight:700;color:var(--gold)">${fmtRating(mvp.rating)}</div>
+                        </div>
+                        <div style="margin-top:6px;font-size:16px">
+                            <a href="player.html?name=${encodeURIComponent(mvp.player.player_name)}">${escapeHtml(mvp.player.player_name)}</a>
+                            <span style="color:var(--muted);font-size:13px"> · ${mvp.player.team === "red" ? "ROJO" : "AZUL"}</span>
+                        </div>
+                    `;
+                    container.append(mvpCard);
+                }
 
                 // Posesión
                 if (match.red_possession != null || match.blue_possession != null) {
@@ -107,10 +125,12 @@
                         teamPlayers.forEach((p) => {
                             const tr = document.createElement("tr");
                             if (myName && p.player_name === myName) tr.classList.add("me");
+                            const isMvp = mvp && p === mvp.player;
+                            if (isMvp) tr.classList.add("mvp");
                             const elo = p.elo_before != null ? (p.elo_change > 0 ? `+${p.elo_change}` : p.elo_change) : "—";
                             const pc = p.passes > 0 ? Math.round((p.completed_passes / p.passes) * 100) + "%" : "—";
                             tr.innerHTML = `
-                                <td><a href="player.html?name=${encodeURIComponent(p.player_name)}">${escapeHtml(p.player_name)}</a></td>
+                                <td>${isMvp ? "👑 " : ""}<a href="player.html?name=${encodeURIComponent(p.player_name)}">${escapeHtml(p.player_name)}</a>${isMvp ? ' <span class="mvp-badge">MVP</span>' : ""}</td>
                                 <td style="color:var(--gold);font-weight:700">${fmtRating(calcMatchRating(p, match))}</td>
                                 <td>${p.goals}</td>
                                 <td>${p.own_goals}</td>
