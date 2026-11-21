@@ -123,6 +123,7 @@
                             if ((p.interceptions || 0) > 0) bits.push(`🛡️${p.interceptions}`);
                             if ((p.shots || 0) > 0 || (p.shots_on_target || 0) > 0) bits.push(`👟${p.shots || 0}/${p.shots_on_target || 0}`);
                             if ((p.passes || 0) > 0 || (p.completed_passes || 0) > 0) bits.push(`🔁${p.completed_passes || 0}/${p.passes || 0}`);
+                            if ((p.oles || 0) > 0) bits.push(`💃${p.oles}`);
 
                             const stats = bits.length
                                 ? `<span style="color:var(--muted);font-size:14px">${bits.join(" ")}</span>`
