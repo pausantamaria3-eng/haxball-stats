@@ -89,7 +89,9 @@ La carpeta `docs/` contiene un sitio estático listo para GitHub Pages.
 ### Páginas incluidas
 - `index.html` — inicio con Top ELO y últimas partidas.
 - `players.html` — ranking completo.
-- `player.html?name=...` — perfil de jugador.
+- `player.html?name=...` — perfil de jugador, con todos sus goles (minuto, xG/probabilidad, velocidad, asistencia y enlace a la repetición).
 - `matches.html` — listado de partidas con paginación.
 - `match.html?id=...` — detalle de partida.
 - `login.html` — login opcional y vinculación de nombre.
+
+Todas las tablas se ordenan haciendo clic en su cabecera (↑/↓ indican el sentido). La lista de repeticiones también se puede ordenar por fecha, minuto, probabilidad, velocidad o golazo.

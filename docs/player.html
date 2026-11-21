@@ -29,11 +29,13 @@
             <div id="elo-history" class="loading">Cargando...</div>
             <h2>Partidas</h2>
             <div id="player-matches" class="loading">Cargando...</div>
+            <h2>Goles</h2>
+            <div id="player-goals" class="loading">Cargando goles...</div>
         </div>
     </main>
     <footer>Haxball Futsal · Estadísticas públicas</footer>
     <script type="module">
-        import { renderAuthBox, setActiveNav, fetchPlayerByName, fetchPlayerMatches, fetchPlayerEloHistory, fmtDate, fmtDistanceKm, calcMatchRating, fmtRating, el } from "./js/common.js";
+        import { renderAuthBox, setActiveNav, fetchPlayerByName, fetchPlayerMatches, fetchPlayerEloHistory, fetchPlayerGoals, fmtDate, fmtDistanceKm, fmtMinute, calcMatchRating, fmtRating, makeSortableTable, el } from "./js/common.js";
         setActiveNav();
         renderAuthBox(document.getElementById("auth-box"));
 
@@ -102,6 +104,7 @@
                         tbody.append(tr);
                     });
                     table.append(tbody);
+                    makeSortableTable(table);
                     eloEl.append(table);
                 });
 
@@ -133,12 +136,57 @@
                         tbody.append(tr);
                     });
                     table.append(tbody);
+                    makeSortableTable(table);
                     matchesEl.append(table);
+                });
+
+                const goalsEl = document.getElementById("player-goals");
+                fetchPlayerGoals(player).then((goals) => {
+                    goalsEl.classList.remove("loading");
+                    if (!goals.length) { goalsEl.innerHTML = '<div class="empty">Sin goles registrados</div>'; return; }
+                    const table = document.createElement("table");
+                    table.innerHTML = "<thead><tr><th>Fecha</th><th>Partido</th><th>Minuto</th><th>Equipo</th><th>Marcador</th><th>xG</th><th>Prob.</th><th>Vel. km/h</th><th>Asistencia</th><th>Golazo</th><th>Repetición</th></tr></thead>";
+                    const tbody = document.createElement("tbody");
+                    goals.forEach((g) => {
+                        const m = g.matches || {};
+                        const tr = document.createElement("tr");
+                        const score = g.score_before && g.score_after
+                            ? g.score_before + " → " + g.score_after
+                            : (m.red_score != null && m.blue_score != null ? m.red_score + "-" + m.blue_score : "—");
+                        const xg = g.xg != null ? Number(g.xg) : null;
+                        const xgText = xg != null ? xg.toFixed(2).replace(".", ",") : "—";
+                        const probText = xg != null ? Math.round(xg * 100) + "%" : "—";
+                        const replayLink = g.replay_url
+                            ? `<a href="replays.html?goal=${encodeURIComponent(g.id)}&autoplay=1" title="Ver la repetición en esta web">Ver ▶</a>`
+                            : "—";
+                        tr.innerHTML = `
+                            <td>${fmtDate(m.started_at)}</td>
+                            <td><a href="match.html?id=${encodeURIComponent(m.id || "")}">${m.map_name || "Partida"}</a></td>
+                            <td>${fmtMinute(g.elapsed_seconds)}</td>
+                            <td style="color:${g.scoring_team === "red" ? "var(--red)" : "var(--blue)"}">${g.scoring_team === "red" ? "ROJO" : "AZUL"}</td>
+                            <td data-sort-value="${parseScore(score)}">${escapeHtml(score)}</td>
+                            <td data-sort-value="${xg != null ? xg : ""}">${xgText}</td>
+                            <td data-sort-value="${xg != null ? xg : ""}">${probText}</td>
+                            <td>${g.ball_speed_kmh != null ? g.ball_speed_kmh : "—"}</td>
+                            <td>${g.assist_name ? escapeHtml(g.assist_name) : "—"}</td>
+                            <td>${g.is_golazo ? "⚡ Sí" : "—"}</td>
+                            <td>${replayLink}</td>
+                        `;
+                        tbody.append(tr);
+                    });
+                    table.append(tbody);
+                    makeSortableTable(table);
+                    goalsEl.append(table);
+                }).catch((err) => {
+                    console.error(err);
+                    goalsEl.classList.remove("loading");
+                    goalsEl.innerHTML = '<div class="empty">No se pudieron cargar los goles</div>';
                 });
             });
         }
 
         function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+        function parseScore(s){const last=String(s).split("→").pop().trim();const m=last.match(/^(\d+)-(\d+)$/);return m?Number(m[1])*1000+Number(m[2]):"";}
     </script>
 </body>
 </html>

@@ -27,7 +27,7 @@
     </main>
     <footer>Haxball Futsal · Estadísticas públicas</footer>
     <script type="module">
-        import { renderAuthBox, setActiveNav, fetchTopPlayers, getLinkedPlayerName } from "./js/common.js";
+        import { renderAuthBox, setActiveNav, fetchTopPlayers, getLinkedPlayerName, makeSortableTable } from "./js/common.js";
         setActiveNav();
         renderAuthBox(document.getElementById("auth-box"));
 
@@ -45,6 +45,7 @@
                 tbody.append(tr);
             });
             table.append(tbody);
+            makeSortableTable(table);
             container.append(table);
         });
 

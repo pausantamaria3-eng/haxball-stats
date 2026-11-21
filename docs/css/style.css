@@ -73,6 +73,11 @@ h3 { font-size: 16px; margin: 16px 0 8px; }
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
 th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+th.sortable:hover { color: var(--text); }
+th.sorted { color: var(--accent); }
+th .sort-arrow { display: inline-block; margin-left: 5px; font-size: 11px; opacity: .35; }
+th.sorted .sort-arrow { opacity: 1; color: var(--accent); }
 tr:hover td { background: var(--bg2); }
 tr.me td { background: rgba(77, 163, 255, 0.12); }
 tr.me td:first-child { border-left: 3px solid var(--accent); }
@@ -157,6 +162,15 @@ footer {
 
 /* Repeticiones de goles */
 .replay-filter.active { background: var(--accent); color: #fff; }
+.replay-sort-bar { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; color: var(--muted); font-size: 13px; }
+.replay-sort-select {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 13px;
+}
 .replay-card p { line-height: 1.7; }
 .replay-player {
     display: flex;

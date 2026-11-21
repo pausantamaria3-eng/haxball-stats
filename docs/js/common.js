@@ -38,6 +38,11 @@ export function fmtDuration(sec) {
     return m + ":" + String(r).padStart(2, "0");
 }
 
+// Minuto del gol (mm:ss).
+export function fmtMinute(sec) {
+    return fmtDuration(sec);
+}
+
 export function fmtDistanceKm(units) {
     const n = Number(units) || 0;
     // 10 unidades = 1 metro → 10.000 unidades = 1 km
@@ -209,6 +214,125 @@ export async function fetchGoalReplays(limit = 100) {
         .limit(limit);
     if (error) { console.error("fetchGoalReplays error:", error); throw error; }
     return data || [];
+}
+
+// Todos los goles de un jugador, incluidos los que no tienen grabación.
+// Se busca por player_key (nombre normalizado) y por nombre exacto, porque
+// los goles antiguos pueden no tener clave.
+export async function fetchPlayerGoals(player, limit = 300) {
+    if (!player) return [];
+    const key = player.normalized_name || String(player.name || "").trim().replace(/\s+/g, " ").toLowerCase();
+    const select = "id,player_name,player_key,assist_name,scoring_team,elapsed_seconds,xg,is_golazo,is_own_goal,ball_speed_kmh,score_before,score_after,replay_url,created_at,matches!inner(id,type,status,map_name,started_at,red_score,blue_score,elo_eligible,manual,end_reason)";
+    const [byKey, byName] = await Promise.all([
+        key ? supabase.from("match_goals").select(select).eq("player_key", key).order("created_at", { ascending: false }).limit(limit) : Promise.resolve({ data: [] }),
+        player.name ? supabase.from("match_goals").select(select).eq("player_name", player.name).order("created_at", { ascending: false }).limit(limit) : Promise.resolve({ data: [] }),
+    ]);
+    if (byKey.error) console.error("fetchPlayerGoals (key) error:", byKey.error);
+    if (byName.error) console.error("fetchPlayerGoals (name) error:", byName.error);
+    const merged = new Map();
+    [...(byKey.data || []), ...(byName.data || [])].forEach((g) => merged.set(g.id, g));
+    return Array.from(merged.values()).sort((a, b) =>
+        String(b.created_at || "").localeCompare(String(a.created_at || ""))
+    );
+}
+
+// Hace ordenable cualquier tabla con <thead> y un <tbody>. El tipo de valor
+// se deduce de la celda (número, fecha, marcador o texto) y se puede
+// sobreescribir con data-sort-value en el <td>.
+export function makeSortableTable(table) {
+    if (!table || table.dataset.sortReady === "1") return;
+    const thead = table.tHead;
+    const tbody = table.tBodies[0];
+    const headRow = thead && thead.rows[0];
+    if (!headRow || !tbody) return;
+    table.dataset.sortReady = "1";
+
+    const rows = Array.from(tbody.rows);
+    rows.forEach((tr, i) => { tr.dataset.sortIndex = String(i); });
+
+    function parseSortValue(cell) {
+        const explicit = cell && cell.getAttribute("data-sort-value");
+        const text = String(explicit != null ? explicit : (cell ? cell.textContent : "")).trim().replace(/\u00a0/g, " ");
+        if (!text || text === "—" || text === "-") return { type: "num", value: -Infinity };
+        const score = text.match(/^(-?\d+)\s*-\s*(-?\d+)$/);
+        if (score) return { type: "num", value: Number(score[1]) * 1000 + Number(score[2]) };
+        const date = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[,\s]+(\d{1,2}):(\d{2}))?/);
+        if (date) return { type: "date", value: new Date(+date[3], +date[2] - 1, +date[1], +(date[4] || 0), +(date[5] || 0)).getTime() };
+        const clock = text.match(/^(\d+):(\d{2})$/);
+        if (clock) return { type: "num", value: Number(clock[1]) * 60 + Number(clock[2]) };
+        const num = text.replace(/\s*(?:km|%)$/i, "").replace(",", ".");
+        if (/^[+-]?\d+(?:\.\d+)?$/.test(num)) return { type: "num", value: Number(num) };
+        return { type: "text", value: text.toLocaleLowerCase("es") };
+    }
+
+    function columnType(index) {
+        for (const tr of rows) {
+            const cell = tr.cells[index];
+            if (!cell) continue;
+            const parsed = parseSortValue(cell);
+            if (parsed.value !== -Infinity) return parsed.type;
+        }
+        return "text";
+    }
+
+    const cols = Array.from(headRow.cells)
+        .map((th, index) => ({ th, index, arrow: null }))
+        .filter(({ th }) => th.colSpan <= 1 && !th.hasAttribute("data-no-sort"));
+
+    let active = null;
+    cols.forEach((col) => {
+        const { th, index } = col;
+        const label = document.createElement("span");
+        label.className = "th-label";
+        while (th.firstChild) label.append(th.firstChild);
+        const arrow = document.createElement("span");
+        arrow.className = "sort-arrow";
+        arrow.textContent = "↕";
+        col.arrow = arrow;
+        th.append(label, arrow);
+        th.classList.add("sortable");
+        th.tabIndex = 0;
+        th.title = "Ordenar por " + label.textContent.trim();
+        th.setAttribute("aria-sort", "none");
+
+        const sort = () => {
+            if (active === col) col.dir = -col.dir;
+            else {
+                if (active) {
+                    active.th.classList.remove("sorted");
+                    active.th.setAttribute("aria-sort", "none");
+                    active.arrow.textContent = "↕";
+                }
+                col.dir = columnType(index) === "text" ? 1 : -1;
+                active = col;
+            }
+
+            const sorted = rows.slice().sort((r1, r2) => {
+                const a = parseSortValue(r1.cells[index]);
+                const b = parseSortValue(r2.cells[index]);
+                const aEmpty = a.value === -Infinity;
+                const bEmpty = b.value === -Infinity;
+                if (aEmpty !== bEmpty) return aEmpty ? 1 : -1; // vacíos siempre al final
+                let cmp;
+                if (typeof a.value === "number" && typeof b.value === "number") cmp = a.value - b.value;
+                else cmp = String(a.value).localeCompare(String(b.value), "es", { numeric: true, sensitivity: "base" });
+                return cmp * col.dir || Number(r1.dataset.sortIndex) - Number(r2.dataset.sortIndex);
+            });
+            sorted.forEach((tr) => tbody.append(tr));
+
+            cols.forEach(({ th: h }) => {
+                const current = h === th;
+                h.classList.toggle("sorted", current);
+                h.setAttribute("aria-sort", current ? (col.dir === 1 ? "ascending" : "descending") : "none");
+            });
+            cols.forEach((c) => { c.arrow.textContent = c === col ? (col.dir === 1 ? "▲" : "▼") : "↕"; });
+        };
+
+        th.addEventListener("click", sort);
+        th.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); sort(); }
+        });
+    });
 }
 
 // Enlace al reproductor oficial de HaxBall. El hash va sin codificar porque

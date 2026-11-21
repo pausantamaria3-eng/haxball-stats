@@ -26,7 +26,7 @@
     </main>
     <footer>Haxball Futsal · Estadísticas públicas</footer>
     <script type="module">
-        import { renderAuthBox, setActiveNav, fetchMatchDetail, getLinkedPlayerName, fmtDistanceKm, calcMatchRating, fmtRating, pickMatchMvp } from "./js/common.js";
+        import { renderAuthBox, setActiveNav, fetchMatchDetail, getLinkedPlayerName, fmtDistanceKm, calcMatchRating, fmtRating, pickMatchMvp, makeSortableTable } from "./js/common.js";
         setActiveNav();
         renderAuthBox(document.getElementById("auth-box"));
 
@@ -159,6 +159,7 @@
                         });
                     }
                     table.append(tbody);
+                    makeSortableTable(table);
                     wrap.append(table);
 
                     // Leyenda compacta
@@ -195,6 +196,7 @@
                         gBody.append(tr);
                     });
                     gTable.append(gBody);
+                    makeSortableTable(gTable);
                     gCard.append(gTable);
                     container.append(gCard);
                 }

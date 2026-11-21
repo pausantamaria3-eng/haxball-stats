@@ -30,6 +30,17 @@
             <button class="btn btn-sm replay-filter" data-filter="official">Oficiales</button>
             <button class="btn btn-sm replay-filter" data-filter="informal">Informales</button>
             <button class="btn btn-sm replay-filter" data-filter="golazo">🚀 Golazos</button>
+            <span class="replay-sort-bar">
+                <span>Ordenar:</span>
+                <select id="replay-sort-key" class="replay-sort-select">
+                    <option value="date">Fecha</option>
+                    <option value="minute">Minuto</option>
+                    <option value="xg">Probabilidad</option>
+                    <option value="speed">Velocidad</option>
+                    <option value="golazo">Golazo</option>
+                </select>
+                <button id="replay-sort-dir" class="btn btn-sm" type="button" title="Invertir orden" aria-label="Invertir orden">▼</button>
+            </span>
         </div>
 
         <div id="replays-list" class="loading">Cargando repeticiones...</div>
@@ -122,6 +133,19 @@
             return card;
         }
 
+        const sortKeyEl = document.getElementById("replay-sort-key");
+        const sortDirEl = document.getElementById("replay-sort-dir");
+        let sortKey = "date";
+        let sortDir = -1;
+
+        function replaySortValue(g) {
+            if (sortKey === "minute") return Number(g.elapsed_seconds);
+            if (sortKey === "xg") return g.xg != null ? Number(g.xg) : null;
+            if (sortKey === "speed") return g.ball_speed_kmh != null ? Number(g.ball_speed_kmh) : null;
+            if (sortKey === "golazo") return g.is_golazo ? 1 : 0;
+            return g.matches && g.matches.started_at ? new Date(g.matches.started_at).getTime() : null;
+        }
+
         function render() {
             listEl.innerHTML = "";
             const shown = allReplays.filter(g => {
@@ -129,6 +153,12 @@
                 if (currentFilter === "official" || currentFilter === "informal") return m.type === currentFilter;
                 if (currentFilter === "golazo") return Boolean(g.is_golazo);
                 return true;
+            }).slice().sort((a, b) => {
+                const va = replaySortValue(a);
+                const vb = replaySortValue(b);
+                if (va == null || !Number.isFinite(va)) return vb == null || !Number.isFinite(vb) ? 0 : 1;
+                if (vb == null || !Number.isFinite(vb)) return -1;
+                return (va - vb) * sortDir;
             });
             if (!shown.length) {
                 listEl.innerHTML = '<div class="empty">No hay repeticiones con este filtro.</div>';
@@ -145,6 +175,23 @@
                 render();
             });
         });
+
+        function updateSortArrow() {
+            sortDirEl.textContent = sortDir === 1 ? "▲" : "▼";
+            sortDirEl.title = sortDir === 1 ? "Ascendente (click para invertir)" : "Descendente (click para invertir)";
+        }
+        sortKeyEl.addEventListener("change", () => {
+            sortKey = sortKeyEl.value;
+            sortDir = -1;
+            updateSortArrow();
+            render();
+        });
+        sortDirEl.addEventListener("click", () => {
+            sortDir = -sortDir;
+            updateSortArrow();
+            render();
+        });
+        updateSortArrow();
 
         fetchGoalReplays(150).then(rows => {
             listEl.classList.remove("loading");
