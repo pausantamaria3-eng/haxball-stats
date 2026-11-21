@@ -122,7 +122,7 @@
 
                     if (!rows.length) { matchesEl.innerHTML = '<div class="empty">Sin partidas</div>'; return; }
                     const table = document.createElement("table");
-                    table.innerHTML = "<thead><tr><th>Fecha</th><th>Tipo</th><th>Mapa</th><th>Equipo</th><th>Marcador</th><th>Goles</th><th>ELO</th></tr></thead>";
+                    table.innerHTML = "<thead><tr><th>Fecha</th><th>Tipo</th><th>Mapa</th><th>Equipo</th><th>Marcador</th><th>Val.</th><th>G</th><th>PP</th><th>A</th><th>T</th><th>TP</th><th>P</th><th>PC</th><th>I</th><th>Par</th><th>Pér</th><th>xG</th><th>⚡</th><th>Oles</th><th>ELO</th></tr></thead>";
                     const tbody = document.createElement("tbody");
                     rows.forEach((r) => {
                         const m = r.matches;
@@ -130,14 +130,23 @@
                         const tr = document.createElement("tr");
                         const type = m.type === "official" ? "OFICIAL" : "INFORMAL";
                         const score = `${m.red_score}-${m.blue_score}`;
+                        const rating = fmtRating(calcMatchRating(r, m));
                         const elo = r.elo_change > 0 ? `+${r.elo_change}` : r.elo_change;
                         const eloColor = r.elo_change > 0 ? "var(--green)" : r.elo_change < 0 ? "var(--red)" : "var(--muted)";
-                        tr.innerHTML = `<td><a href="match.html?id=${m.id}">${fmtDate(m.started_at)}</a></td><td><span class="badge badge-${m.type}">${type}</span></td><td>${m.map_name || "—"}</td><td style="color:${r.team === "red" ? "var(--red)" : "var(--blue)"}">${r.team === "red" ? "ROJO" : "AZUL"}</td><td>${score}</td><td>${r.goals}${r.own_goals ? " (" + r.own_goals + " pp)" : ""}</td><td style="color:${eloColor};font-weight:700">${r.elo_before != null ? elo : "—"}</td>`;
+                        const n = (v) => Number(v) || 0;
+                        tr.innerHTML = `<td><a href="match.html?id=${m.id}">${fmtDate(m.started_at)}</a></td><td><span class="badge badge-${m.type}">${type}</span></td><td>${m.map_name || "—"}</td><td style="color:${r.team === "red" ? "var(--red)" : "var(--blue)"}">${r.team === "red" ? "ROJO" : "AZUL"}</td><td>${score}</td><td style="color:var(--gold);font-weight:700">${rating}</td><td>${n(r.goals)}</td><td>${n(r.own_goals)}</td><td>${n(r.assists)}</td><td>${n(r.shots)}</td><td>${n(r.shots_on_target)}</td><td>${n(r.passes)}</td><td>${n(r.completed_passes)}</td><td>${n(r.interceptions)}</td><td>${n(r.saves)}</td><td>${n(r.possession_lost)}</td><td>${(n(r.xg)).toFixed(2)}</td><td>${n(r.golazos)}</td><td>${n(r.oles)}</td><td style="color:${eloColor};font-weight:700">${r.elo_before != null ? elo : "—"}</td>`;
                         tbody.append(tr);
                     });
                     table.append(tbody);
                     makeSortableTable(table);
-                    matchesEl.append(table);
+                    const wrap = document.createElement("div");
+                    wrap.style.overflowX = "auto";
+                    wrap.append(table);
+                    const legend = document.createElement("div");
+                    legend.style.cssText = "color:var(--muted);font-size:10px;margin-top:6px";
+                    legend.textContent = "Val.=Valoración sobre 10 G=Goles PP=Propia A=Asist T=Tiros TP=T.Puerta P=Pases PC=P.Completados I=Intercept Par=Paradas Pér=Pérdidas ⚡=Golazos";
+                    wrap.append(legend);
+                    matchesEl.append(wrap);
                 });
 
                 const goalsEl = document.getElementById("player-goals");
