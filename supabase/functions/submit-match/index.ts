@@ -343,8 +343,15 @@ Deno.serve(async (req: Request) => {
 
         let eloAfter = eloBefore;
         let eloChange = 0;
+        const abandonPenalty = num(p.abandonPenalty);
+        const hasEloMove = eloEligible || abandonPenalty > 0;
 
-        if (eloEligible) {
+        if (abandonPenalty > 0) {
+            // Abandono: se aplica la penalización fija aunque la partida
+            // haya perdido el ELO por el propio abandono.
+            eloAfter = Math.max(0, eloBefore - abandonPenalty);
+            eloChange = eloAfter - eloBefore;
+        } else if (eloEligible) {
             const myTeamAvg = p.team === "red" ? redAvg : blueAvg;
             const oppTeamAvg = p.team === "red" ? blueAvg : redAvg;
             const isMvp = Boolean(mvp && mvp.player === p);
@@ -399,7 +406,7 @@ Deno.serve(async (req: Request) => {
 
             await supabase.from("players").update(updates).eq("id", playerId);
 
-            if (eloEligible) {
+            if (hasEloMove) {
                 await supabase.from("elo_history").insert({
                     player_id: playerId,
                     match_id: matchId,
@@ -421,9 +428,9 @@ Deno.serve(async (req: Request) => {
             own_goals: p.ownGoals ?? 0,
             left_match: Boolean(p.left),
             moved_to_spectator: Boolean(p.movedToSpectator),
-            elo_before: eloEligible ? eloBefore : null,
-            elo_after: eloEligible ? eloAfter : null,
-            elo_change: eloEligible ? eloChange : 0,
+            elo_before: hasEloMove ? eloBefore : null,
+            elo_after: hasEloMove ? eloAfter : null,
+            elo_change: hasEloMove ? eloChange : 0,
             shots: p.shots ?? 0,
             shots_on_target: p.shotsOnTarget ?? 0,
             passes: p.passes ?? 0,
