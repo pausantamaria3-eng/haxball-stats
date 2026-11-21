@@ -135,6 +135,10 @@ footer {
 }
 .elo-big { font-size: 48px; font-weight: 800; color: var(--gold); }
 
+/* Partidas: texto y etiquetas un poco más grandes */
+#matches-list .badge { font-size: 12px; padding: 3px 10px; }
+#matches-list .match-score { font-size: 18px; }
+
 @media (max-width: 600px) {
     .container { padding: 0 12px; }
     h1 { font-size: 22px; }

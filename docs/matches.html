@@ -79,7 +79,7 @@
                 card.append(header);
 
                 const meta = document.createElement("div");
-                meta.style.cssText = "color:var(--muted);font-size:12px;margin-bottom:10px";
+                meta.style.cssText = "color:var(--muted);font-size:14px;margin-bottom:10px";
                 meta.innerHTML = `${fmtDate(m.started_at)}${m.manual ? " · manual" : ""}${m.end_reason ? " · " + m.end_reason : ""}${m.elo_eligible ? " · ELO" : ""}`;
                 card.append(meta);
 
@@ -91,17 +91,17 @@
                 function buildCol(team, colorVar) {
                     const wrap = document.createElement("div");
                     const title = document.createElement("div");
-                    title.style.cssText = `color:${colorVar};font-weight:700;font-size:13px;margin-bottom:4px`;
+                    title.style.cssText = `color:${colorVar};font-weight:700;font-size:15px;margin-bottom:4px`;
                     title.textContent = team === "red" ? "ROJO" : "AZUL";
                     wrap.append(title);
                     const list = document.createElement("div");
                     const teamParts = (byMatch[m.id]?.[team] || []).sort((a, b) => (b.goals - a.goals) || a.player_name.localeCompare(b.player_name));
                     if (!teamParts.length) {
-                        list.innerHTML = '<span style="color:var(--muted);font-size:12px">Sin jugadores</span>';
+                        list.innerHTML = '<span style="color:var(--muted);font-size:14px">Sin jugadores</span>';
                     } else {
                         teamParts.forEach((p) => {
                             const row = document.createElement("div");
-                            row.style.cssText = "display:flex;justify-content:space-between;align-items:center;gap:8px;padding:3px 0;font-size:13px;border-bottom:1px solid var(--border)";
+                            row.style.cssText = "display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0;font-size:15px;border-bottom:1px solid var(--border)";
                             if (myName && p.player_name === myName) row.classList.add("me");
                             const nameLink = `<a href="player.html?name=${encodeURIComponent(p.player_name)}">${escapeHtml(p.player_name)}</a>`;
 
@@ -116,11 +116,11 @@
                             if ((p.passes || 0) > 0 || (p.completed_passes || 0) > 0) bits.push(`🔁${p.completed_passes || 0}/${p.passes || 0}`);
 
                             const stats = bits.length
-                                ? `<span style="color:var(--muted);font-size:12px">${bits.join(" ")}</span>`
+                                ? `<span style="color:var(--muted);font-size:14px">${bits.join(" ")}</span>`
                                 : "";
                             const elo = p.elo_before != null ? (p.elo_change > 0 ? `+${p.elo_change}` : p.elo_change) : "";
                             const eloColor = p.elo_change > 0 ? "var(--green)" : p.elo_change < 0 ? "var(--red)" : "var(--muted)";
-                            const eloHtml = elo ? `<span style="color:${eloColor};font-weight:700;font-size:12px">${elo}</span>` : "";
+                            const eloHtml = elo ? `<span style="color:${eloColor};font-weight:700;font-size:14px">${elo}</span>` : "";
                             row.innerHTML = `<span>${nameLink}</span><span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">${stats}${eloHtml}</span>`;
                             list.append(row);
                         });
