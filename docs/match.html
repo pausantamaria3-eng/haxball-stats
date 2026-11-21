@@ -44,14 +44,18 @@
                 const card = document.createElement("div");
                 card.className = "card";
                 card.innerHTML = `
-                    <h1 style="margin:0 0 10px">${type} · ${match.map_name || "—"}</h1>
-                    <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
-                        <span class="match-score"><span class="score-red">${match.red_score}</span> - <span class="score-blue">${match.blue_score}</span></span>
+                    <h1 style="margin:0 0 6px;text-align:center">${type} · ${match.map_name || "—"}</h1>
+                    <div style="display:flex;justify-content:center;align-items:center;gap:28px;flex-wrap:wrap;margin:8px 0 12px">
+                        <span style="color:var(--red);font-weight:800;font-size:20px;letter-spacing:1px">ROJO</span>
+                        <span class="match-score" style="font-size:56px;line-height:1;letter-spacing:4px"><span class="score-red">${match.red_score}</span> <span style="color:var(--muted);font-size:36px">-</span> <span class="score-blue">${match.blue_score}</span></span>
+                        <span style="color:var(--blue);font-weight:800;font-size:20px;letter-spacing:1px">AZUL</span>
+                    </div>
+                    <div style="text-align:center;margin-bottom:10px">
                         <span class="badge badge-${match.status}">${match.status}</span>
                         ${match.manual ? '<span class="badge badge-informal">manual</span>' : ""}
                         ${match.elo_eligible ? '<span class="badge badge-completed">ELO</span>' : ""}
                     </div>
-                    <div style="color:var(--muted);font-size:13px">
+                    <div style="color:var(--muted);font-size:13px;text-align:center">
                         Inicio: ${fmtDate(match.started_at)} · Fin: ${fmtDate(match.ended_at)} · Duración: ${fmtDur(match.duration_seconds)}
                         ${match.end_reason ? " · Fin: " + match.end_reason : ""}
                         ${match.spectator_name ? " · Espectador: " + escapeHtml(match.spectator_name) : ""}
@@ -103,15 +107,15 @@
                 const pCard = document.createElement("div");
                 pCard.className = "card";
                 pCard.innerHTML = "<h2>Participantes</h2>";
-                const cols = document.createElement("div");
-                cols.className = "grid grid-2";
-                cols.style.gap = "16px";
+                const blocks = document.createElement("div");
+                blocks.style.cssText = "display:flex;flex-direction:column;gap:22px";
 
                 function buildTeamTable(team, colorVar) {
                     const wrap = document.createElement("div");
+                    wrap.style.cssText = "overflow-x:auto;padding:4px 2px 8px;border-radius:8px";
                     const title = document.createElement("h3");
-                    title.style.color = colorVar;
-                    title.textContent = team === "red" ? "ROJO" : "AZUL";
+                    title.style.cssText = `color:${colorVar};font-size:18px;margin:0 0 10px;padding-bottom:6px;border-bottom:2px solid ${colorVar}`;
+                    title.textContent = team === "red" ? "EQUIPO ROJO" : "EQUIPO AZUL";
                     wrap.append(title);
                     const table = document.createElement("table");
                     table.innerHTML = "<thead><tr><th>Jugador</th><th>Val.</th><th>G</th><th>PP</th><th>T</th><th>TP</th><th>P</th><th>PC</th><th>A</th><th>I</th><th>Par</th><th>Pér</th><th>Dist km</th><th>xG</th><th>⚡</th><th>Oles</th></tr></thead>";
@@ -161,9 +165,9 @@
                     return wrap;
                 }
 
-                cols.append(buildTeamTable("red", "var(--red)"));
-                cols.append(buildTeamTable("blue", "var(--blue)"));
-                pCard.append(cols);
+                blocks.append(buildTeamTable("red", "var(--red)"));
+                blocks.append(buildTeamTable("blue", "var(--blue)"));
+                pCard.append(blocks);
                 container.append(pCard);
 
                 // Goles
