@@ -125,6 +125,8 @@ export function pickMatchMvp(participants, match) {
     let best = null;
     let bestRating = -Infinity;
     (participants || []).forEach((p) => {
+        // Quien abandona (o pasa a espectador) no puede ser MVP
+        if (p.left_match || p.left || p.moved_to_spectator || p.movedToSpectator) return;
         const rating = calcMatchRating(p, match);
         const goals = Number(p.goals) || 0;
         const bestGoals = Number(best && best.goals) || 0;

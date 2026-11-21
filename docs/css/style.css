@@ -88,6 +88,13 @@ tr.mvp td:first-child { border-left: 3px solid var(--gold); }
 tr.mvp:hover td { background: rgba(255, 215, 0, 0.16); }
 .mvp-row { background: rgba(255, 215, 0, 0.10); box-shadow: inset 3px 0 0 var(--gold); }
 
+/* Jugadores que abandonaron: se ven en gris */
+.abandoned-row { opacity: 0.6; font-style: italic; }
+.abandoned-badge { display:inline-block; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:700; text-transform:uppercase; background:rgba(150,150,150,.18); color:#aaa; border:1px solid rgba(150,150,150,.35); }
+tr.abandoned td { color: #9a9a9a; background: rgba(120, 120, 120, 0.07); }
+tr.abandoned a { color: #9a9a9a; }
+tr.abandoned:hover td { background: rgba(120, 120, 120, 0.12); }
+
 .badge {
     display: inline-block;
     padding: 2px 8px;

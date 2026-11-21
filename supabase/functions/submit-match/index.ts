@@ -98,6 +98,8 @@ function pickMvp(players: any[], ratings: Map<string, number>) {
     let best: any = null;
     let bestRating = -Infinity;
     for (const p of players) {
+        // Quien abandona (o pasa a espectador) no puede ser MVP
+        if (p.left || p.left_match || p.movedToSpectator || p.moved_to_spectator) continue;
         const rating = ratings.get(p.key) ?? 0;
         if (!best || rating > bestRating ||
             (rating === bestRating && num(p.goals) > num(best.goals)) ||

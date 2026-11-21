@@ -131,10 +131,12 @@
                             if (myName && p.player_name === myName) tr.classList.add("me");
                             const isMvp = mvp && p === mvp.player;
                             if (isMvp) tr.classList.add("mvp");
+                            const abandoned = Boolean(p.left_match || p.moved_to_spectator);
+                            if (abandoned) tr.classList.add("abandoned");
                             const elo = p.elo_before != null ? (p.elo_change > 0 ? `+${p.elo_change}` : p.elo_change) : "—";
                             const pc = p.passes > 0 ? Math.round((p.completed_passes / p.passes) * 100) + "%" : "—";
                             tr.innerHTML = `
-                                <td>${isMvp ? "👑 " : ""}<a href="player.html?name=${encodeURIComponent(p.player_name)}">${escapeHtml(p.player_name)}</a>${isMvp ? ' <span class="mvp-badge">MVP</span>' : ""}</td>
+                                <td>${isMvp ? "👑 " : ""}<a href="player.html?name=${encodeURIComponent(p.player_name)}">${escapeHtml(p.player_name)}</a>${isMvp ? ' <span class="mvp-badge">MVP</span>' : ""}${abandoned ? ' <span class="abandoned-badge">🚪 abandonado</span>' : ""}</td>
                                 <td style="color:var(--gold);font-weight:700">${fmtRating(calcMatchRating(p, match))}</td>
                                 <td>${p.goals}</td>
                                 <td>${p.own_goals}</td>

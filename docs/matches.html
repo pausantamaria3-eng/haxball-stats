@@ -110,7 +110,9 @@
                             if (myName && p.player_name === myName) row.classList.add("me");
                             const isMvp = mvp && p === mvp.player;
                             if (isMvp) row.classList.add("mvp-row");
-                            const nameLink = `${isMvp ? "👑 " : ""}<a href="player.html?name=${encodeURIComponent(p.player_name)}">${escapeHtml(p.player_name)}</a>`;
+                            const abandoned = Boolean(p.left_match || p.moved_to_spectator);
+                            if (abandoned) row.classList.add("abandoned-row");
+                            const nameLink = `${isMvp ? "👑 " : ""}<a href="player.html?name=${encodeURIComponent(p.player_name)}">${escapeHtml(p.player_name)}</a>${abandoned ? ' <span class="abandoned-badge">🚪 abandonado</span>' : ""}`;
 
                             // Solo se muestran las estadísticas que tienen valor (> 0)
                             const bits = [];
