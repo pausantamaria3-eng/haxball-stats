@@ -204,11 +204,18 @@ export async function fetchGoalReplays(limit = 100) {
     const { data, error } = await supabase
         .from("match_goals")
         .select("*, matches!inner(id,type,status,map_name,started_at,red_score,blue_score,elo_eligible,manual,end_reason)")
-        .not("replay", "is", null)
+        .not("replay_url", "is", null)
         .order("created_at", { ascending: false })
         .limit(limit);
     if (error) { console.error("fetchGoalReplays error:", error); throw error; }
     return data || [];
+}
+
+// Enlace al reproductor oficial de HaxBall. El hash va sin codificar porque
+// el propio reproductor lo usa como URL directa del fichero .hbr2.
+export function haxballReplayUrl(replayUrl) {
+    if (!replayUrl) return null;
+    return "https://www.haxball.com/replay?v=3#" + replayUrl;
 }
 
 export async function fetchPlayerEloHistory(playerId, limit = 50) {

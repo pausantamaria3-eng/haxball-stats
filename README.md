@@ -10,10 +10,12 @@
 2. Pega el contenido de `supabase/schema.sql` y ejecuta.
 3. Verifica que las tablas aparezcan en Table Editor.
 
-## 2b. Repeticiones de goles
-1. En el SQL Editor ejecuta también `supabase/replays.sql` (añade a `match_goals` las columnas `assist_name`, `score_before`, `score_after`, `ball_speed_kmh` y `replay`).
+## 2b. Repeticiones de goles (grabación nativa)
+1. En el SQL Editor ejecuta también `supabase/replays.sql`. Crea el bucket público `replays` y añade a `match_goals` las columnas de contexto y `replay_url`.
 2. Despliega la Edge Function actualizada (paso 3) y pega en el headless el `haxball-server.js` actualizado.
-3. Cada gol guardará automáticamente 5 s antes y 1 s después a 20 fps. Se pueden ver en la pestaña **Repeticiones** de la web o desde el enlace `Ver ▶` en el detalle del partido.
+3. El servidor usa `room.startRecording()` / `room.stopRecording()` de HaxBall: guarda un archivo `.hbr2` real por cada gol (toda la jugada previa + 1,2 s después) y lo sube a `replays/<id-partido>/<indice-gol>.hbr2`.
+4. En la web, cada gol tiene un botón **▶ Ver en HaxBall** que abre el reproductor oficial con su grabación. También está el enlace `Ver ▶` en el detalle del partido.
+5. Los goles anteriores a este cambio no tienen grabación y no aparecen en la pestaña **Repeticiones**.
 
 ## 3. Desplegar la Edge Function
 Instala la CLI de Supabase (https://supabase.com/docs/guides/cli) y ejecuta desde `C:\Users\ytpau\haxball-stats`:
@@ -21,8 +23,14 @@ Instala la CLI de Supabase (https://supabase.com/docs/guides/cli) y ejecuta desd
 ```bash
 supabase login
 supabase link --project-ref TU_PROJECT_REF
-supabase functions deploy submit-match
+supabase functions deploy submit-match --no-verify-jwt
 ```
+
+> La sala llama a `.../functions/v1/hyper-action`. Si desplegaste la función con
+> ese nombre en el dashboard, pega el contenido de `index.ts` en esa función.
+> Si usas la CLI, la carpeta `submit-match` crea una función con ese nombre:
+> cambia `EDGE_FUNCTION_URL` en `haxball-server.js` a `/functions/v1/submit-match`
+> o renombra la función desplegada a `hyper-action`.
 
 Configura los secretos (el EDGE_SECRET lo eliges tú, una cadena larga aleatoria):
 

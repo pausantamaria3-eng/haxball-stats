@@ -23,7 +23,7 @@
     </header>
     <main class="container">
         <h1>Repeticiones de goles</h1>
-        <p style="color:var(--muted);margin-top:-8px">Cada gol con su asistencia, guardado desde el servidor.</p>
+        <p style="color:var(--muted);margin-top:-8px">Grabaciones originales de HaxBall (.hbr2), con todo el contexto del gol.</p>
 
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
             <button class="btn btn-sm replay-filter active" data-filter="all">Todos</button>
@@ -37,7 +37,7 @@
     <footer>Haxball Futsal · Estadísticas públicas</footer>
 
     <script type="module">
-        import { fetchGoalReplays, renderAuthBox, setActiveNav, escapeHtml, fmtDate, fmtDuration, teamName, teamColor } from "./js/common.js";
+        import { fetchGoalReplays, renderAuthBox, setActiveNav, escapeHtml, fmtDate, fmtDuration, teamName, haxballReplayUrl } from "./js/common.js";
 
         setActiveNav();
         renderAuthBox(document.getElementById("auth-box"));
@@ -45,7 +45,6 @@
         const listEl = document.getElementById("replays-list");
         let allReplays = [];
         let currentFilter = "all";
-        let animators = [];
 
         function fmtMinute(seconds) {
             const s = Number(seconds);
@@ -67,8 +66,6 @@
             const after = goal.score_after || scoreText(goal);
             const parts = String(after).split("-").map(Number);
             if (parts.length !== 2 || parts.some(n => !Number.isFinite(n))) return after;
-            // El marcador se guarda rojo-azul; aquí lo mostramos desde el
-            // punto de vista del equipo que marcó (ej. "2-1 del equipo azul").
             return goal.scoring_team === "blue" ? parts[1] + "-" + parts[0] : after;
         }
 
@@ -76,8 +73,7 @@
             const bits = [];
             const scorer = goal.player_name || "Autor desconocido";
             const own = goal.is_own_goal ? " (en propia)" : "";
-            const team = teamName(goal.scoring_team);
-            bits.push("<strong>" + escapeHtml(scorer) + own + "</strong> para el <strong>" + escapeHtml(scoreForTeam(goal)) + "</strong> del equipo " + team);
+            bits.push("<strong>" + escapeHtml(scorer) + own + "</strong> para el <strong>" + escapeHtml(scoreForTeam(goal)) + "</strong> del equipo " + teamName(goal.scoring_team));
             if (goal.assist_name) bits.push("🅰️ Asistencia de <strong>" + escapeHtml(goal.assist_name) + "</strong>");
             bits.push("⏱️ minuto " + fmtMinute(goal.elapsed_seconds));
             if (goal.is_golazo) bits.push("🚀 Golazo");
@@ -86,180 +82,10 @@
             return bits.join(" · ");
         }
 
-        function drawFrame(canvas, goal, frameIndex) {
-            const ctx = canvas.getContext("2d");
-            const replay = goal.replay || {};
-            const field = replay.field || {};
-            const frames = replay.frames || [];
-            const W = canvas.width;
-            const H = canvas.height;
-            const fw = Number(field.w) || 800;
-            const fh = Number(field.h) || 400;
-            const padX = 10;
-            const padY = 10;
-            const sx = (W - padX * 2) / fw;
-            const sy = (H - padY * 2) / fh;
-            const scale = Math.min(sx, sy);
-            const offX = (W - fw * scale) / 2;
-            const offY = (H - fh * scale) / 2;
-            const px = x => offX + (Number(x) + fw / 2) * scale;
-            const py = y => offY + (Number(y) + fh / 2) * scale;
-
-            ctx.clearRect(0, 0, W, H);
-            ctx.fillStyle = "#12351f";
-            ctx.fillRect(0, 0, W, H);
-
-            // Césped y líneas
-            ctx.strokeStyle = "rgba(255,255,255,.45)";
-            ctx.lineWidth = 1.5;
-            ctx.strokeRect(offX, offY, fw * scale, fh * scale);
-            ctx.beginPath();
-            ctx.moveTo(px(0), offY);
-            ctx.lineTo(px(0), offY + fh * scale);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(px(0), py(0), Math.max(6, 65 * scale), 0, Math.PI * 2);
-            ctx.stroke();
-
-            // Porterías
-            const goalHalf = (Number(field.goalH) || 65) * scale;
-            const goalDepth = 12;
-            ctx.fillStyle = teamColor("red");
-            ctx.fillRect(offX - goalDepth, py(0) - goalHalf, goalDepth, goalHalf * 2);
-            ctx.fillStyle = teamColor("blue");
-            ctx.fillRect(offX + fw * scale, py(0) - goalHalf, goalDepth, goalHalf * 2);
-
-            const frame = frames[frameIndex] || frames[0];
-            if (frame) {
-                const playersById = new Map((replay.players || []).map(p => [p.id, p]));
-
-                // Jugadores
-                for (let i = 2; i + 3 < frame.length; i += 4) {
-                    const id = frame[i];
-                    const team = frame[i + 1] === 1 ? "red" : "blue";
-                    const info = playersById.get(id) || {};
-                    const cx = px(frame[i + 2]);
-                    const cy = py(frame[i + 3]);
-                    ctx.beginPath();
-                    ctx.arc(cx, cy, 5, 0, Math.PI * 2);
-                    ctx.fillStyle = teamColor(team);
-                    ctx.fill();
-                    ctx.strokeStyle = "#0b0f1a";
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
-                    if (info.name) {
-                        ctx.fillStyle = "#fff";
-                        ctx.font = "10px Segoe UI, sans-serif";
-                        ctx.textAlign = "center";
-                        ctx.fillText(String(info.name).slice(0, 10), cx, cy - 8);
-                    }
-                }
-
-                // Balón
-                ctx.beginPath();
-                ctx.arc(px(frame[0]), py(frame[1]), 4, 0, Math.PI * 2);
-                ctx.fillStyle = "#eaff00";
-                ctx.fill();
-                ctx.strokeStyle = "#0b0f1a";
-                ctx.stroke();
-            }
-
-            ctx.fillStyle = "rgba(0,0,0,.55)";
-            ctx.fillRect(6, 6, 96, 20);
-            ctx.fillStyle = "#fff";
-            ctx.font = "bold 11px Segoe UI, sans-serif";
-            ctx.textAlign = "left";
-            ctx.fillText("REPETICIÓN", 12, 20);
-        }
-
-        function mountPlayer(card, goal) {
-            const replay = goal.replay || {};
-            const frames = replay.frames || [];
-            const fps = Number(replay.fps) || 20;
-            const before = Number(replay.beforeFrames) || frames.length;
-            const totalMs = frames.length / fps * 1000;
-            const goalMs = before / fps * 1000;
-
-            const canvas = card.querySelector("canvas");
-            const playBtn = card.querySelector(".replay-play");
-            const range = card.querySelector(".replay-range");
-            const timeEl = card.querySelector(".replay-time");
-            const speedBtn = card.querySelector(".replay-speed");
-
-            let idx = 0;
-            let playing = false;
-            let speed = 1;
-            let lastTs = null;
-            let raf = null;
-
-            range.max = String(Math.max(0, frames.length - 1));
-
-            function render() {
-                drawFrame(canvas, goal, idx);
-                range.value = String(idx);
-                const t = idx / fps;
-                const rel = t - before / fps;
-                const label = (rel < 0 ? "-" : "+") + Math.abs(rel).toFixed(1) + " s";
-                timeEl.textContent = label + "  ·  " + (Math.floor(idx) + 1) + "/" + frames.length;
-            }
-
-            function tick(ts) {
-                if (!playing) return;
-                if (lastTs == null) lastTs = ts;
-                const dt = Math.min(100, ts - lastTs);
-                lastTs = ts;
-                idx += dt / 1000 * fps * speed;
-                if (idx >= frames.length - 1) {
-                    idx = frames.length - 1;
-                    playing = false;
-                    playBtn.textContent = "▶ Repetir";
-                    render();
-                    return;
-                }
-                render();
-                raf = requestAnimationFrame(tick);
-            }
-
-            function play() {
-                if (idx >= frames.length - 1) idx = 0;
-                playing = true;
-                lastTs = null;
-                playBtn.textContent = "⏸ Pausar";
-                raf = requestAnimationFrame(tick);
-            }
-
-            function pause() {
-                playing = false;
-                playBtn.textContent = "▶ Reproducir";
-                if (raf) cancelAnimationFrame(raf);
-            }
-
-            playBtn.addEventListener("click", () => playing ? pause() : play());
-            range.addEventListener("input", () => {
-                pause();
-                idx = Math.max(0, Math.min(frames.length - 1, Number(range.value) || 0));
-                render();
-            });
-            speedBtn.addEventListener("click", () => {
-                speed = speed === 1 ? 0.5 : speed === 0.5 ? 2 : 1;
-                speedBtn.textContent = speed + "x";
-            });
-
-            // Marca del momento del gol en la barra
-            const marker = card.querySelector(".replay-goal-marker");
-            if (frames.length > 1) {
-                marker.style.left = (before / (frames.length - 1) * 100) + "%";
-                marker.style.display = "block";
-            }
-
-            render();
-            animators.push(pause);
-        }
-
         function buildCard(goal) {
             const m = goal.matches || {};
-            const isOwn = Boolean(goal.is_own_goal);
             const typeClass = m.type === "official" ? "badge-official" : "badge-informal";
+            const href = haxballReplayUrl(goal.replay_url);
             const card = document.createElement("div");
             card.className = "card replay-card";
             card.dataset.type = m.type || "informal";
@@ -274,26 +100,17 @@
                     <a href="match.html?id=${encodeURIComponent(m.id || "")}">Ver partida →</a>
                 </div>
                 <p style="font-size:16px;margin:12px 0 14px">⚽ ${contextLine(goal)}</p>
-                <div class="replay-stage">
-                    <canvas width="800" height="400"></canvas>
-                    <div class="replay-goal-marker" style="display:none"></div>
+                <div class="replay-launch">
+                    <a class="btn" href="${escapeHtml(href)}" target="_blank" rel="noopener">▶ Ver en HaxBall</a>
+                    <span>Grabación original · se abre el reproductor oficial</span>
                 </div>
-                <div class="replay-controls">
-                    <button class="btn btn-sm replay-play">▶ Reproducir</button>
-                    <input class="replay-range" type="range" min="0" max="0" value="0" step="1">
-                    <button class="btn btn-sm replay-speed">1x</button>
-                    <span class="replay-time" style="color:var(--muted);font-size:12px;min-width:130px;text-align:right">—</span>
-                </div>
-                <div style="color:var(--muted);font-size:12px">${escapeHtml(m.map_name || (goal.replay && goal.replay.field && goal.replay.field.name) || "—")} · duración ${escapeHtml(fmtDuration(m.duration_seconds))}</div>
+                <div style="color:var(--muted);font-size:12px;margin-top:12px">${escapeHtml(m.map_name || "—")} · duración ${escapeHtml(fmtDuration(m.duration_seconds))}</div>
             `;
-            mountPlayer(card, goal);
             return card;
         }
 
         function render() {
             listEl.innerHTML = "";
-            animators.forEach(pause => pause());
-            animators = [];
             const shown = allReplays.filter(g => {
                 const m = g.matches || {};
                 if (currentFilter === "official" || currentFilter === "informal") return m.type === currentFilter;
@@ -318,9 +135,8 @@
 
         fetchGoalReplays(150).then(rows => {
             listEl.classList.remove("loading");
-            allReplays = rows.filter(g => g.replay && Array.isArray(g.replay.frames) && g.replay.frames.length > 0);
+            allReplays = rows.filter(g => Boolean(g.replay_url));
 
-            // Enlace directo desde el detalle de un partido.
             const focusGoal = new URLSearchParams(location.search).get("goal");
             if (focusGoal && allReplays.some(g => g.id === focusGoal)) {
                 allReplays = allReplays.filter(g => g.id === focusGoal);

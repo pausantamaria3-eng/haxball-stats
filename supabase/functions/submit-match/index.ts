@@ -163,16 +163,47 @@ Deno.serve(async (req: Request) => {
     if (!payload || typeof payload.externalId !== "string" || !payload.externalId) {
         return json({ ok: false, error: "missing_external_id" }, 400);
     }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+        auth: { persistSession: false },
+    });
+
+    // Subida de una grabación nativa (.hbr2) de HaxBall. Se llama desde el
+    // headless justo después de cada gol; el nombre del archivo es
+    // determinista: <externalId>/<goalIndex>.hbr2.
+    if (payload.action === "upload-replay") {
+        if (typeof payload.replay !== "string" || !payload.replay) {
+            return json({ ok: false, error: "missing_replay" }, 400);
+        }
+        if (!Number.isInteger(payload.goalIndex) || payload.goalIndex < 0) {
+            return json({ ok: false, error: "invalid_goal_index" }, 400);
+        }
+
+        const bytes = Uint8Array.from(atob(payload.replay), (c) => c.charCodeAt(0));
+        const path = `${payload.externalId}/${payload.goalIndex}.hbr2`;
+
+        const { error: uploadError } = await supabase.storage
+            .from("replays")
+            .upload(path, bytes, {
+                contentType: "application/octet-stream",
+                upsert: true,
+            });
+
+        if (uploadError) {
+            console.error("replay upload error", uploadError);
+            return json({ ok: false, error: "replay_upload_failed" }, 500);
+        }
+
+        const replayUrl = supabase.storage.from("replays").getPublicUrl(path).data.publicUrl;
+        return json({ ok: true, replayUrl });
+    }
+
     if (payload.type !== "official" && payload.type !== "informal") {
         return json({ ok: false, error: "invalid_type" }, 400);
     }
     if (!Array.isArray(payload.participants)) {
         return json({ ok: false, error: "invalid_participants" }, 400);
     }
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-        auth: { persistSession: false },
-    });
 
     // Idempotencia
     const { data: existing } = await supabase
@@ -446,8 +477,15 @@ Deno.serve(async (req: Request) => {
         });
     }
 
+    function buildReplayUrl(g: any, index: number): string | null {
+        if (!g || (!g.hasReplay && !g.replayUrl)) return null;
+        if (g.replayUrl) return g.replayUrl;
+        const path = `${payload.externalId}/${index}.hbr2`;
+        return supabase.storage.from("replays").getPublicUrl(path).data.publicUrl;
+    }
+
     if (Array.isArray(payload.goals) && payload.goals.length > 0) {
-        const goalRows = payload.goals.map((g: any) => ({
+        const goalRows = payload.goals.map((g: any, index: number) => ({
             match_id: matchId,
             scoring_team: g.scoringTeam,
             player_id: g.playerKey ? playerByKey.get(g.playerKey) ?? null : null,
@@ -466,6 +504,7 @@ Deno.serve(async (req: Request) => {
             score_after: g.scoreAfter ?? null,
             ball_speed_kmh: g.ballSpeedKmh ?? null,
             replay: g.replay ?? null,
+            replay_url: buildReplayUrl(g, index),
         }));
 
         const { error: goalsError } = await supabase.from("match_goals").insert(goalRows);
