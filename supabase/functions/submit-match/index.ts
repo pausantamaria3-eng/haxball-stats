@@ -374,7 +374,8 @@ Deno.serve(async (req: Request) => {
 
         let eloAfter = eloBefore;
         let eloChange = 0;
-        const abandonPenalty = num(p.abandonPenalty);
+        // Solo las partidas oficiales (formales) penalizan ELO por abandono.
+        const abandonPenalty = payload.type === "official" ? num(p.abandonPenalty) : 0;
         const hasEloMove = eloEligible || abandonPenalty > 0;
 
         if (abandonPenalty > 0) {
