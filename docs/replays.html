@@ -37,12 +37,15 @@
     <footer>Haxball Futsal · Estadísticas públicas</footer>
 
     <script type="module">
-        import { fetchGoalReplays, renderAuthBox, setActiveNav, escapeHtml, fmtDate, fmtDuration, teamName, haxballReplayUrl } from "./js/common.js";
+        import { fetchGoalReplays, renderAuthBox, setActiveNav, escapeHtml, fmtDate, fmtDuration, teamName, haxballReplayUrl, mountEmbeddedReplay } from "./js/common.js";
 
         setActiveNav();
         renderAuthBox(document.getElementById("auth-box"));
 
         const listEl = document.getElementById("replays-list");
+        const params = new URLSearchParams(location.search);
+        const focusGoal = params.get("goal");
+        const autoPlay = params.get("autoplay") === "1";
         let allReplays = [];
         let currentFilter = "all";
 
@@ -100,12 +103,22 @@
                     <a href="match.html?id=${encodeURIComponent(m.id || "")}">Ver partida →</a>
                 </div>
                 <p style="font-size:16px;margin:12px 0 14px">⚽ ${contextLine(goal)}</p>
-                <div class="replay-launch">
-                    <a class="btn" href="${escapeHtml(href)}" target="_blank" rel="noopener">▶ Ver en HaxBall</a>
-                    <span>Grabación original · se abre el reproductor oficial</span>
+                <div class="replay-player" data-replay-url="${escapeHtml(goal.replay_url)}">
+                    <button class="btn replay-load" type="button">▶ Reproducir aquí</button>
+                    <a class="btn btn-sm" href="${escapeHtml(href)}" target="_blank" rel="noopener">Abrir en haxball.com ↗</a>
                 </div>
                 <div style="color:var(--muted);font-size:12px;margin-top:12px">${escapeHtml(m.map_name || "—")} · duración ${escapeHtml(fmtDuration(m.duration_seconds))}</div>
             `;
+
+            const playerEl = card.querySelector(".replay-player");
+            card.querySelector(".replay-load").addEventListener("click", () => {
+                mountEmbeddedReplay(playerEl, goal.replay_url);
+            });
+
+            if (autoPlay && focusGoal && String(goal.id) === String(focusGoal)) {
+                mountEmbeddedReplay(playerEl, goal.replay_url);
+            }
+
             return card;
         }
 
@@ -137,9 +150,8 @@
             listEl.classList.remove("loading");
             allReplays = rows.filter(g => Boolean(g.replay_url));
 
-            const focusGoal = new URLSearchParams(location.search).get("goal");
-            if (focusGoal && allReplays.some(g => g.id === focusGoal)) {
-                allReplays = allReplays.filter(g => g.id === focusGoal);
+            if (focusGoal && allReplays.some(g => String(g.id) === String(focusGoal))) {
+                allReplays = allReplays.filter(g => String(g.id) === String(focusGoal));
                 currentFilter = "all";
                 document.querySelectorAll(".replay-filter").forEach(b =>
                     b.classList.toggle("active", b.dataset.filter === "all")

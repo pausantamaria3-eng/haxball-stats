@@ -218,6 +218,32 @@ export function haxballReplayUrl(replayUrl) {
     return "https://www.haxball.com/replay?v=3#" + replayUrl;
 }
 
+// Reproductor oficial alojado en este sitio (copia de la versión 3). Se sirve
+// desde el mismo origen para poder incrustarlo: haxball.com manda
+// X-Frame-Options: SAMEORIGIN y no se puede poner en un iframe directamente.
+export function mountEmbeddedReplay(container, replayUrl) {
+    if (!container || !replayUrl) return null;
+
+    const iframe = document.createElement("iframe");
+    iframe.className = "embedded-replay-frame";
+    iframe.title = "Repetición de HaxBall";
+    iframe.src = new URL("replayer/replayer.html", document.baseURI).href;
+    iframe.allow = "fullscreen";
+    iframe.setAttribute("allowfullscreen", "");
+    iframe.addEventListener("load", () => {
+        try {
+            iframe.contentWindow.___init___(replayUrl);
+        } catch (error) {
+            console.error("No se pudo iniciar el reproductor incrustado:", error);
+        }
+    });
+
+    container.innerHTML = "";
+    container.classList.add("loaded");
+    container.append(iframe);
+    return iframe;
+}
+
 export async function fetchPlayerEloHistory(playerId, limit = 50) {
     const { data, error } = await supabase
         .from("elo_history")

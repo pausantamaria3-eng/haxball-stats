@@ -26,7 +26,7 @@
     </main>
     <footer>Haxball Futsal · Estadísticas públicas</footer>
     <script type="module">
-        import { renderAuthBox, setActiveNav, fetchMatchDetail, getLinkedPlayerName, fmtDistanceKm, calcMatchRating, fmtRating, pickMatchMvp, haxballReplayUrl } from "./js/common.js";
+        import { renderAuthBox, setActiveNav, fetchMatchDetail, getLinkedPlayerName, fmtDistanceKm, calcMatchRating, fmtRating, pickMatchMvp } from "./js/common.js";
         setActiveNav();
         renderAuthBox(document.getElementById("auth-box"));
 
@@ -188,9 +188,8 @@
                         const own = g.is_own_goal ? " (propia)" : "";
                         const xg = g.xg != null ? Number(g.xg).toFixed(2) : "—";
                         const golazo = g.is_golazo ? " ⚡" : "";
-                        const replayHref = haxballReplayUrl(g.replay_url);
-                        const replayLink = replayHref
-                            ? `<a href="${escapeHtml(replayHref)}" target="_blank" rel="noopener" title="Abrir grabación original de HaxBall">Ver ▶</a>`
+                        const replayLink = g.replay_url
+                            ? `<a href="replays.html?goal=${encodeURIComponent(g.id)}&autoplay=1" title="Ver la repetición en esta web">Ver ▶</a>`
                             : "—";
                         tr.innerHTML = `<td>${fmtTime(g.elapsed_seconds)}</td><td style="color:${g.scoring_team === "red" ? "var(--red)" : "var(--blue)"}">${g.scoring_team === "red" ? "ROJO" : "AZUL"}</td><td>${g.player_name ? escapeHtml(g.player_name) + own + golazo : "desconocido"}</td><td>${xg}</td><td>${g.estimated ? "estimado" : "—"}</td><td>${replayLink}</td>`;
                         gBody.append(tr);

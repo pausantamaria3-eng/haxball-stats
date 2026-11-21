@@ -14,7 +14,7 @@
 1. En el SQL Editor ejecuta también `supabase/replays.sql`. Crea el bucket público `replays` y añade a `match_goals` las columnas de contexto y `replay_url`.
 2. Despliega la Edge Function actualizada (paso 3) y pega en el headless el `haxball-server.js` actualizado.
 3. El servidor usa `room.startRecording()` / `room.stopRecording()` de HaxBall: guarda un archivo `.hbr2` real por cada gol (toda la jugada previa + 1,2 s después) y lo sube a `replays/<id-partido>/<indice-gol>.hbr2`.
-4. En la web, cada gol tiene un botón **▶ Ver en HaxBall** que abre el reproductor oficial con su grabación. También está el enlace `Ver ▶` en el detalle del partido.
+4. En la web, cada gol tiene un botón **▶ Reproducir aquí** que carga el reproductor oficial de HaxBall incrustado en la propia página (copia de la versión 3 alojada en `docs/replayer/`, porque haxball.com no permite iframes). También puedes abrirlo en haxball.com con el enlace secundario y, desde el detalle del partido, `Ver ▶` abre la repetición ya cargada.
 5. Los goles anteriores a este cambio no tienen grabación y no aparecen en la pestaña **Repeticiones**.
 
 ## 3. Desplegar la Edge Function
