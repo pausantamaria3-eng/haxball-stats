@@ -24,6 +24,118 @@ function json(body: unknown, status = 200) {
     });
 }
 
+// ============================================================
+// Valoración y ELO (misma fórmula que el servidor y la web)
+// ============================================================
+
+const ELO_START = 100;
+
+function num(v: any): number {
+    return Number(v) || 0;
+}
+
+function clampNum(v: number, min: number, max: number): number {
+    return Math.max(min, Math.min(max, v));
+}
+
+function calcMatchRating(p: any, match: any): number {
+    let r = 5;
+
+    const goals = num(p.goals);
+    const ownGoals = num(p.ownGoals);
+    const assists = num(p.assists);
+    const saves = num(p.saves);
+    const interceptions = num(p.interceptions);
+    const shots = num(p.shots);
+    const shotsOnTarget = num(p.shotsOnTarget);
+    const passes = num(p.passes);
+    const completedPasses = num(p.completedPasses);
+    const lost = num(p.possessionLost);
+    const oles = num(p.oles);
+    const golazos = num(p.golazos);
+    const xg = num(p.xg);
+
+    const resultValid = Boolean(match) && match.status === "completed" &&
+        !match.manual && match.end_reason !== "abandoned";
+
+    if (resultValid) {
+        const myScore = p.team === "red" ? num(match.red_score) : num(match.blue_score);
+        const oppScore = p.team === "red" ? num(match.blue_score) : num(match.red_score);
+        if (myScore > oppScore) r += 1.0;
+        else if (myScore < oppScore) r -= 1.0;
+        else r += 0.2;
+    }
+
+    r += Math.min(goals * 0.8, 2.4);
+    r += Math.min(assists * 0.5, 1.5);
+    r += Math.min(golazos * 0.4, 0.8);
+    r += Math.min(shotsOnTarget * 0.12, 0.8);
+    r += Math.min(Math.max(shots - shotsOnTarget, 0) * 0.02, 0.2);
+    r += clampNum((goals - xg) * 0.25, -0.8, 0.8);
+    r -= Math.min(ownGoals * 1.2, 2.4);
+    r += Math.min(completedPasses * 0.03, 0.6);
+    r -= Math.min(Math.max(passes - completedPasses, 0) * 0.02, 0.5);
+    if (passes > 0) r += clampNum((completedPasses / passes - 0.7) * 2, -0.4, 0.4);
+    r += Math.min(saves * 0.15, 1.0);
+    r += Math.min(interceptions * 0.12, 0.8);
+    r -= Math.min(lost * 0.03, 0.6);
+    r += Math.min(oles * 0.2, 0.6);
+
+    if (match) {
+        const possession = p.team === "red" ? num(match.red_possession) : num(match.blue_possession);
+        if (possession > 0) r += clampNum((possession - 50) * 0.02, -0.5, 0.5);
+    }
+
+    if (p.left || p.left_match) r -= 1.0;
+    if (p.movedToSpectator || p.moved_to_spectator) r -= 0.5;
+
+    if (!resultValid) r = Math.min(r, 7.5);
+    r = clampNum(r, 0, 10);
+    return Math.round(r * 10) / 10;
+}
+
+function pickMvp(players: any[], ratings: Map<string, number>) {
+    let best: any = null;
+    let bestRating = -Infinity;
+    for (const p of players) {
+        const rating = ratings.get(p.key) ?? 0;
+        if (!best || rating > bestRating ||
+            (rating === bestRating && num(p.goals) > num(best.goals)) ||
+            (rating === bestRating && num(p.goals) === num(best.goals) &&
+                String(p.name || "").localeCompare(String(best.name || "")) < 0)) {
+            best = p;
+            bestRating = rating;
+        }
+    }
+    return best ? { player: best, rating: bestRating } : null;
+}
+
+function computeEloDelta(o: {
+    matchesPlayed: number;
+    myTeamAvg: number;
+    oppTeamAvg: number;
+    outcome: "win" | "loss" | "draw";
+    rating: number;
+    isMvp: boolean;
+    ownGoals: number;
+    margin: number;
+}): number {
+    // Elo clásico ajustado por rendimiento, MVP, experiencia y diferencia de goles
+    const expected = 1 / (1 + Math.pow(10, (o.oppTeamAvg - o.myTeamAvg) / 400));
+    const actual = o.outcome === "win" ? 1 : o.outcome === "loss" ? 0 : 0.5;
+    const k = o.matchesPlayed < 10 ? 24 : o.matchesPlayed < 30 ? 20 : 16;
+    // La nota ya incluye el resultado: comparamos contra la nota neutra de ese resultado
+    // para no contarlo dos veces (6,0 victoria / 4,0 derrota / 5,2 empate).
+    const baseline = o.outcome === "win" ? 6 : o.outcome === "loss" ? 4 : 5.2;
+    const adjustedActual = clampNum(
+        actual + (o.rating - baseline) * 0.04 + (o.isMvp ? 0.12 : 0) - Math.min(o.ownGoals * 0.06, 0.18),
+        0,
+        1.35
+    );
+    const marginFactor = 1 + Math.min(o.margin, 5) * 0.05;
+    return Math.round(k * (adjustedActual - expected) * marginFactor);
+}
+
 Deno.serve(async (req: Request) => {
     // Preflight CORS
     if (req.method === "OPTIONS") {
@@ -71,14 +183,13 @@ Deno.serve(async (req: Request) => {
         return json({ ok: true, duplicate: true, matchId: existing.id });
     }
 
-    const ELO_START = 100;
-    const ELO_WIN = 10;
-    const ELO_LOSS = 5;
-
-    const eloEligible = Boolean(payload.eloEligible) && payload.type === "official";
+    // Solo partidas oficiales, completas, no manuales y sin abandono
+    const eloEligible = Boolean(payload.eloEligible) &&
+        payload.type === "official" &&
+        payload.status === "completed" &&
+        !payload.manual;
     const redWon = payload.redScore > payload.blueScore;
     const blueWon = payload.blueScore > payload.redScore;
-    const draw = payload.redScore === payload.blueScore;
 
     function normalizeName(name: string): string {
         return String(name).trim().replace(/\s+/g, " ").toLowerCase();
@@ -145,7 +256,7 @@ Deno.serve(async (req: Request) => {
             blue_score: payload.blueScore,
             red_possession: payload.redPossession ?? null,
             blue_possession: payload.bluePossession ?? null,
-            elo_eligible: payload.eloEligible ?? false,
+            elo_eligible: eloEligible,
             manual: payload.manual ?? false,
             end_reason: payload.endReason ?? null,
             spectator_name: payload.spectator?.name ?? null,
@@ -177,18 +288,52 @@ Deno.serve(async (req: Request) => {
         }
     }
 
+    // Snapshot de ELO y experiencia ANTES de aplicar cambios
+    const ratingMatch = {
+        status: payload.status,
+        manual: payload.manual ?? false,
+        end_reason: payload.endReason ?? null,
+        red_score: num(payload.redScore),
+        blue_score: num(payload.blueScore),
+        red_possession: payload.redPossession,
+        blue_possession: payload.bluePossession,
+    };
+    const allPlayers = Array.from(merged.values());
+    const ratings = new Map<string, number>();
+    for (const p of allPlayers) ratings.set(p.key, calcMatchRating(p, ratingMatch));
+    const mvp = pickMvp(allPlayers, ratings);
+
+    const playerIds = Array.from(playerByKey.values());
+    const eloSnapshot = new Map<string, { elo: number; matches: number }>();
+    if (playerIds.length) {
+        const { data: snap } = await supabase
+            .from("players")
+            .select("id,elo,matches")
+            .in("id", playerIds);
+        for (const row of snap || []) {
+            eloSnapshot.set(row.id, { elo: num(row.elo), matches: num(row.matches) });
+        }
+    }
+
+    function teamAverage(team: string): number {
+        const members = allPlayers.filter((p) => p.team === team);
+        if (!members.length) return ELO_START;
+        let sum = 0;
+        for (const p of members) {
+            const id = playerByKey.get(p.key);
+            sum += id ? (eloSnapshot.get(id)?.elo ?? ELO_START) : ELO_START;
+        }
+        return sum / members.length;
+    }
+    const redAvg = teamAverage("red");
+    const blueAvg = teamAverage("blue");
+    const margin = Math.abs(num(payload.redScore) - num(payload.blueScore));
+
     for (const [key, p] of merged.entries()) {
         const playerId = playerByKey.get(key) ?? null;
-
-        let eloBefore = ELO_START;
-        if (playerId) {
-            const { data: pl } = await supabase
-                .from("players")
-                .select("elo")
-                .eq("id", playerId)
-                .single();
-            if (pl && typeof pl.elo === "number") eloBefore = pl.elo;
-        }
+        const snapshot = playerId ? eloSnapshot.get(playerId) : null;
+        const eloBefore = snapshot?.elo ?? ELO_START;
+        const matchesPlayed = snapshot?.matches ?? 0;
 
         let outcome: "win" | "loss" | "draw" = "draw";
         if (redWon) outcome = p.team === "red" ? "win" : "loss";
@@ -197,14 +342,23 @@ Deno.serve(async (req: Request) => {
         let eloAfter = eloBefore;
         let eloChange = 0;
 
-        if (eloEligible && !draw) {
-            if (outcome === "win") {
-                eloAfter = eloBefore + ELO_WIN;
-                eloChange = ELO_WIN;
-            } else if (outcome === "loss") {
-                eloAfter = Math.max(0, eloBefore - ELO_LOSS);
-                eloChange = eloAfter - eloBefore;
-            }
+        if (eloEligible) {
+            const myTeamAvg = p.team === "red" ? redAvg : blueAvg;
+            const oppTeamAvg = p.team === "red" ? blueAvg : redAvg;
+            const isMvp = Boolean(mvp && mvp.player === p);
+            const rating = ratings.get(key) ?? 5;
+            eloChange = computeEloDelta({
+                matchesPlayed,
+                myTeamAvg,
+                oppTeamAvg,
+                outcome,
+                rating,
+                isMvp,
+                ownGoals: num(p.ownGoals),
+                margin,
+            });
+            eloAfter = Math.max(0, eloBefore + eloChange);
+            eloChange = eloAfter - eloBefore;
         }
 
         if (playerId) {
