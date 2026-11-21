@@ -32,7 +32,7 @@
     </main>
     <footer>Haxball Futsal · Estadísticas públicas</footer>
     <script type="module">
-        import { renderAuthBox, setActiveNav, fetchPlayerByName, fetchPlayerMatches, fetchPlayerEloHistory, fmtDate, fmtDistanceKm, el } from "./js/common.js";
+        import { renderAuthBox, setActiveNav, fetchPlayerByName, fetchPlayerMatches, fetchPlayerEloHistory, fmtDate, fmtDistanceKm, calcMatchRating, fmtRating, el } from "./js/common.js";
         setActiveNav();
         renderAuthBox(document.getElementById("auth-box"));
 
@@ -51,7 +51,7 @@
                 profileEl.innerHTML = "";
                 const header = document.createElement("div");
                 header.className = "card profile-header";
-                header.innerHTML = `<div class="avatar">${initial}</div><div><h1 style="margin:0">${escapeHtml(player.name)}</h1><div class="elo-big">${player.elo}</div><div style="color:var(--muted)">ELO actual</div></div>`;
+                header.innerHTML = `<div class="avatar">${initial}</div><div><h1 style="margin:0">${escapeHtml(player.name)}</h1><div style="display:flex;gap:32px;align-items:flex-end;flex-wrap:wrap"><div><div class="elo-big">${player.elo}</div><div style="color:var(--muted)">ELO actual</div></div><div><div class="elo-big" style="color:var(--gold);font-size:36px"><span id="avg-rating">—</span></div><div style="color:var(--muted)">Valoración media</div></div></div></div>`;
                 profileEl.append(header);
                 statsEl.style.display = "block";
 
@@ -107,6 +107,15 @@
                 const matchesEl = document.getElementById("player-matches");
                 fetchPlayerMatches(player.id).then((rows) => {
                     matchesEl.classList.remove("loading");
+
+                    // Valoración media: oficiales si hay, si no todas
+                    const rated = rows.filter((r) => r.matches).map((r) => ({ rating: calcMatchRating(r, r.matches), official: r.matches.type === "official" }));
+                    const official = rated.filter((x) => x.official);
+                    const pool = official.length ? official : rated;
+                    const avg = pool.length ? pool.reduce((s, x) => s + x.rating, 0) / pool.length : null;
+                    const avgEl = document.getElementById("avg-rating");
+                    if (avgEl) avgEl.textContent = avg != null ? fmtRating(avg) : "—";
+
                     if (!rows.length) { matchesEl.innerHTML = '<div class="empty">Sin partidas</div>'; return; }
                     const table = document.createElement("table");
                     table.innerHTML = "<thead><tr><th>Fecha</th><th>Tipo</th><th>Mapa</th><th>Equipo</th><th>Marcador</th><th>Goles</th><th>ELO</th></tr></thead>";

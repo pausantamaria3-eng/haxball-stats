@@ -45,6 +45,82 @@ export function fmtDistanceKm(units) {
     return km.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " km";
 }
 
+function clamp(v, min, max) {
+    return Math.max(min, Math.min(max, v));
+}
+
+export function fmtRating(value) {
+    const n = Number(value) || 0;
+    return n.toFixed(1).replace(".", ",");
+}
+
+export function calcMatchRating(p, match) {
+    const n = (v) => Number(v) || 0;
+    let r = 5;
+
+    const goals = n(p.goals);
+    const ownGoals = n(p.own_goals);
+    const assists = n(p.assists);
+    const saves = n(p.saves);
+    const interceptions = n(p.interceptions);
+    const shots = n(p.shots);
+    const shotsOnTarget = n(p.shots_on_target);
+    const passes = n(p.passes);
+    const completedPasses = n(p.completed_passes);
+    const lost = n(p.possession_lost);
+    const oles = n(p.oles);
+    const golazos = n(p.golazos);
+    const xg = n(p.xg);
+
+    const resultValid = Boolean(match) && match.status === "completed" &&
+        !match.manual && match.end_reason !== "abandoned";
+
+    if (resultValid) {
+        const myScore = p.team === "red" ? n(match.red_score) : n(match.blue_score);
+        const oppScore = p.team === "red" ? n(match.blue_score) : n(match.red_score);
+        if (myScore > oppScore) r += 1.0;
+        else if (myScore < oppScore) r -= 1.0;
+        else r += 0.2;
+    }
+
+    // Ataque
+    r += Math.min(goals * 0.8, 2.4);
+    r += Math.min(assists * 0.5, 1.5);
+    r += Math.min(golazos * 0.4, 0.8);
+    r += Math.min(shotsOnTarget * 0.12, 0.8);
+    r += Math.min(Math.max(shots - shotsOnTarget, 0) * 0.02, 0.2);
+    r += clamp((goals - xg) * 0.25, -0.8, 0.8);
+
+    // Penalizaciones de ataque
+    r -= Math.min(ownGoals * 1.2, 2.4);
+
+    // Pases
+    r += Math.min(completedPasses * 0.03, 0.6);
+    r -= Math.min(Math.max(passes - completedPasses, 0) * 0.02, 0.5);
+    if (passes > 0) {
+        r += clamp((completedPasses / passes - 0.7) * 2, -0.4, 0.4);
+    }
+
+    // Defensa y estilo
+    r += Math.min(saves * 0.15, 1.0);
+    r += Math.min(interceptions * 0.12, 0.8);
+    r -= Math.min(lost * 0.03, 0.6);
+    r += Math.min(oles * 0.2, 0.6);
+
+    // Posesión del equipo
+    if (match) {
+        const possession = p.team === "red" ? n(match.red_possession) : n(match.blue_possession);
+        if (possession > 0) r += clamp((possession - 50) * 0.02, -0.5, 0.5);
+    }
+
+    if (p.left_match) r -= 1.0;
+    if (p.moved_to_spectator) r -= 0.5;
+
+    if (!resultValid) r = Math.min(r, 7.5);
+    r = clamp(r, 0, 10);
+    return Math.round(r * 10) / 10;
+}
+
 export function teamColor(team) {
     return team === "red" ? "#ff6b6b" : "#6b8cff";
 }
@@ -86,7 +162,7 @@ export async function fetchPlayerByName(name) {
 export async function fetchPlayerMatches(playerId, limit = 30) {
     const { data, error } = await supabase
         .from("match_participants")
-        .select("match_id,team,goals,own_goals,left_match,moved_to_spectator,elo_before,elo_after,elo_change,matches(id,type,status,map_name,started_at,red_score,blue_score)")
+        .select("match_id,team,goals,own_goals,left_match,moved_to_spectator,assists,saves,interceptions,shots,shots_on_target,passes,completed_passes,possession_lost,oles,golazos,xg,elo_before,elo_after,elo_change,matches(id,type,status,map_name,started_at,red_score,blue_score,manual,end_reason,red_possession,blue_possession)")
         .eq("player_id", playerId)
         .order("created_at", { ascending: false })
         .limit(limit);

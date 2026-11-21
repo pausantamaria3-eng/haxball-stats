@@ -27,7 +27,7 @@
     </main>
     <footer>Haxball Futsal · Estadísticas públicas</footer>
     <script type="module">
-        import { renderAuthBox, setActiveNav, getLinkedPlayerName } from "./js/common.js";
+        import { renderAuthBox, setActiveNav, getLinkedPlayerName, calcMatchRating, fmtRating } from "./js/common.js";
         import { supabase } from "./js/supabase.js";
         setActiveNav();
         renderAuthBox(document.getElementById("auth-box"));
@@ -42,7 +42,7 @@
             listEl.innerHTML = "Cargando...";
             const { data: matches, error } = await supabase
                 .from("matches")
-                .select("id,type,status,map_name,started_at,red_score,blue_score,elo_eligible,manual,end_reason")
+                .select("id,type,status,map_name,started_at,red_score,blue_score,elo_eligible,manual,end_reason,red_possession,blue_possession")
                 .order("started_at", { ascending: false })
                 .range(offset, offset + PAGE_SIZE - 1);
 
@@ -52,7 +52,7 @@
             const ids = matches.map((m) => m.id);
             const { data: parts } = await supabase
                 .from("match_participants")
-                .select("match_id,player_name,team,goals,own_goals,assists,saves,interceptions,shots,shots_on_target,passes,completed_passes,elo_change,elo_before")
+                .select("match_id,player_name,team,goals,own_goals,assists,saves,interceptions,shots,shots_on_target,passes,completed_passes,possession_lost,oles,golazos,xg,left_match,moved_to_spectator,elo_change,elo_before")
                 .in("match_id", ids);
 
             const byMatch = {};
@@ -118,10 +118,12 @@
                             const stats = bits.length
                                 ? `<span style="color:var(--muted);font-size:14px">${bits.join(" ")}</span>`
                                 : "";
+                            const rating = fmtRating(calcMatchRating(p, m));
+                            const ratingHtml = `<span style="color:var(--gold);font-weight:700;font-size:14px">⭐${rating}</span>`;
                             const elo = p.elo_before != null ? (p.elo_change > 0 ? `+${p.elo_change}` : p.elo_change) : "";
                             const eloColor = p.elo_change > 0 ? "var(--green)" : p.elo_change < 0 ? "var(--red)" : "var(--muted)";
                             const eloHtml = elo ? `<span style="color:${eloColor};font-weight:700;font-size:14px">${elo}</span>` : "";
-                            row.innerHTML = `<span>${nameLink}</span><span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">${stats}${eloHtml}</span>`;
+                            row.innerHTML = `<span>${nameLink}</span><span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">${ratingHtml}${stats}${eloHtml}</span>`;
                             list.append(row);
                         });
                     }
